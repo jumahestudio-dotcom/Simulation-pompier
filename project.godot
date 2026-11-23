@@ -1,0 +1,19 @@
+; Fichier de configuration du projet Godot 4.
+
+config_version=5
+
+[application]
+
+config/name="Simulation Sapeur-Pompier (prototype)"
+config/description="Prototype : une garde de sapeur 2e classe au centre de secours de Joué-lès-Tours (SDIS fictif de Touraine)."
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.3", "Forward Plus")
+
+[display]
+
+window/size/viewport_width=1600
+window/size/viewport_height=900
+
+[physics]
+
+common/physics_ticks_per_second=60

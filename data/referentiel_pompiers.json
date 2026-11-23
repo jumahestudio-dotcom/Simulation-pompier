@@ -1,0 +1,1691 @@
+{
+  "version": "2026-11-23",
+  "legende_fiabilite": {
+    "S": "sourcé (statistique ou texte officiel)",
+    "U": "usage courant, varie selon le SDIS",
+    "A": "approximation de jeu"
+  },
+  "sources": [
+    {
+      "titre": "DGSCGC, Les statistiques des services d'incendie et de secours, édition 2025 (données 2024)",
+      "url": "https://www.faceaurisque.com/wp-content/uploads/2025/12/Statistiques-interventions-Sdis-edition-2025-sur-annee-2024_compressed.pdf"
+    }
+  ],
+  "statistiques_2024": {
+    "interventions_total": 4754811,
+    "interventions_par_jour": 13027,
+    "appels_18_112": 17329127,
+    "part_appels_18": 0.64,
+    "victimes_prises_en_charge": 3878430,
+    "effectifs": {
+      "total": 256379,
+      "spp": 43985,
+      "spv": 198918,
+      "militaires": 13476
+    }
+  },
+  "tirage": {
+    "methode": "1) catégorie selon 'part' x modulateurs de la catégorie ; 2) sous-type selon 'poids' x modulateurs (nuit 22h-6h, saison) ; 3) gravité de chaque victime selon gravite_nationale ou gravite du sous-type ; 4) départ réflexe envoyé, renforts sur demande du COS",
+    "fiabilite_poids_sous_types": "A"
+  },
+  "vehicules": [
+    {
+      "code": "VSAV",
+      "nom": "Véhicule de secours et d'assistance aux victimes",
+      "famille": "SAP",
+      "equipage": 3,
+      "roles_equipage": [
+        "chef_agres",
+        "conducteur",
+        "equipier"
+      ],
+      "capacites": [
+        "brancard",
+        "immobilisation",
+        "dsa",
+        "oxygene",
+        "aspiration",
+        "lot_accouchement",
+        "lot_pediatrique",
+        "garrot",
+        "transport_victime"
+      ]
+    },
+    {
+      "code": "FPT",
+      "nom": "Fourgon pompe-tonne",
+      "famille": "incendie",
+      "equipage": 6,
+      "roles_equipage": [
+        "chef_agres",
+        "conducteur",
+        "chef_bat",
+        "equipier_bat",
+        "chef_bal",
+        "equipier_bal"
+      ],
+      "capacites": [
+        "eau_3000L",
+        "pompe_2000Lmin",
+        "ari",
+        "echelle_coulisse",
+        "echelle_crochets",
+        "lspcc",
+        "camera_thermique",
+        "explosimetre",
+        "balisage",
+        "prompt_secours"
+      ]
+    },
+    {
+      "code": "FPTL",
+      "nom": "Fourgon pompe-tonne léger",
+      "famille": "incendie",
+      "equipage": 4,
+      "roles_equipage": [
+        "chef_agres",
+        "conducteur",
+        "chef_equipe",
+        "equipier"
+      ],
+      "capacites": [
+        "eau_2000L",
+        "pompe",
+        "ari",
+        "balisage"
+      ]
+    },
+    {
+      "code": "FPTSR",
+      "nom": "Fourgon pompe-tonne secours routier",
+      "famille": "mixte",
+      "equipage": 6,
+      "roles_equipage": [
+        "chef_agres",
+        "conducteur",
+        "chef_bat",
+        "equipier_bat",
+        "chef_bal",
+        "equipier_bal"
+      ],
+      "capacites": [
+        "eau_3000L",
+        "pompe_2000Lmin",
+        "ari",
+        "desincarceration",
+        "calage",
+        "balisage",
+        "prompt_secours"
+      ]
+    },
+    {
+      "code": "EPA",
+      "nom": "Échelle pivotante automatique",
+      "famille": "elevateur",
+      "equipage": 2,
+      "roles_equipage": [
+        "chef_agres",
+        "conducteur"
+      ],
+      "capacites": [
+        "echelle_30m",
+        "sauvetage_hauteur",
+        "lance_canon"
+      ]
+    },
+    {
+      "code": "EPC",
+      "nom": "Échelle pivotante combinée (nacelle)",
+      "famille": "elevateur",
+      "equipage": 3,
+      "roles_equipage": [
+        "chef_agres",
+        "conducteur",
+        "equipier"
+      ],
+      "capacites": [
+        "echelle_30m",
+        "nacelle",
+        "sauvetage_hauteur",
+        "lance_canon"
+      ]
+    },
+    {
+      "code": "BEA",
+      "nom": "Bras élévateur aérien",
+      "famille": "elevateur",
+      "equipage": 2,
+      "roles_equipage": [
+        "chef_agres",
+        "conducteur"
+      ],
+      "capacites": [
+        "nacelle",
+        "franchissement_obstacle"
+      ]
+    },
+    {
+      "code": "VSR",
+      "nom": "Véhicule de secours routier",
+      "famille": "secours_routier",
+      "equipage": 3,
+      "roles_equipage": [
+        "chef_agres",
+        "conducteur",
+        "equipier"
+      ],
+      "capacites": [
+        "desincarceration",
+        "calage",
+        "coussins_levage",
+        "protection_airbag",
+        "balisage"
+      ]
+    },
+    {
+      "code": "VTU",
+      "nom": "Véhicule tous usages",
+      "famille": "operations_diverses",
+      "equipage": 2,
+      "roles_equipage": [
+        "chef_agres",
+        "conducteur"
+      ],
+      "capacites": [
+        "epuisement",
+        "aspiration_eau",
+        "tronconneuse",
+        "bachage",
+        "lot_hymenopteres",
+        "lot_animalier",
+        "eclairage",
+        "ouverture_porte"
+      ]
+    },
+    {
+      "code": "VPI",
+      "nom": "Véhicule de première intervention",
+      "famille": "incendie",
+      "equipage": 3,
+      "roles_equipage": [
+        "chef_agres",
+        "conducteur",
+        "equipier"
+      ],
+      "capacites": [
+        "eau_1000L",
+        "pompe"
+      ]
+    },
+    {
+      "code": "CCF",
+      "nom": "Camion-citerne feux de forêts",
+      "famille": "feux_espaces_naturels",
+      "equipage": 4,
+      "roles_equipage": [
+        "chef_agres",
+        "conducteur",
+        "equipier",
+        "equipier"
+      ],
+      "capacites": [
+        "eau_3000L",
+        "tout_terrain",
+        "autoprotection"
+      ]
+    },
+    {
+      "code": "CCGC",
+      "nom": "Camion-citerne grande capacité",
+      "famille": "ravitaillement",
+      "equipage": 2,
+      "roles_equipage": [
+        "chef_agres",
+        "conducteur"
+      ],
+      "capacites": [
+        "eau_12000L"
+      ]
+    },
+    {
+      "code": "VLCG",
+      "nom": "Véhicule léger chef de groupe",
+      "famille": "commandement",
+      "equipage": 2,
+      "roles_equipage": [
+        "chef_groupe",
+        "conducteur"
+      ],
+      "capacites": [
+        "commandement_groupe"
+      ]
+    },
+    {
+      "code": "VLHR",
+      "nom": "Véhicule de liaison hors route",
+      "famille": "commandement",
+      "equipage": 2,
+      "roles_equipage": [
+        "chef_groupe",
+        "conducteur"
+      ],
+      "capacites": [
+        "commandement_groupe",
+        "tout_terrain"
+      ]
+    },
+    {
+      "code": "VLCC",
+      "nom": "Véhicule léger chef de colonne",
+      "famille": "commandement",
+      "equipage": 2,
+      "roles_equipage": [
+        "chef_colonne",
+        "conducteur"
+      ],
+      "capacites": [
+        "commandement_colonne"
+      ]
+    },
+    {
+      "code": "PCM",
+      "nom": "Poste de commandement mobile",
+      "famille": "commandement",
+      "equipage": 4,
+      "roles_equipage": [
+        "chef_site",
+        "officier",
+        "operateur",
+        "operateur"
+      ],
+      "capacites": [
+        "commandement_site"
+      ]
+    },
+    {
+      "code": "VLI",
+      "nom": "Véhicule léger infirmier",
+      "famille": "sante",
+      "equipage": 2,
+      "roles_equipage": [
+        "infirmier",
+        "conducteur"
+      ],
+      "capacites": [
+        "soins_infirmiers",
+        "protocoles"
+      ]
+    },
+    {
+      "code": "VLM",
+      "nom": "Véhicule léger médicalisé",
+      "famille": "sante",
+      "equipage": 2,
+      "roles_equipage": [
+        "medecin",
+        "conducteur"
+      ],
+      "capacites": [
+        "reanimation",
+        "medicaments"
+      ]
+    },
+    {
+      "code": "CMIC",
+      "nom": "Cellule mobile d'intervention chimique",
+      "famille": "risques_technologiques",
+      "equipage": 4,
+      "roles_equipage": [
+        "chef_agres",
+        "conducteur",
+        "equipier",
+        "equipier"
+      ],
+      "capacites": [
+        "detection",
+        "tenue_etanche",
+        "colmatage"
+      ]
+    }
+  ],
+  "categories": [
+    {
+      "id": "secours_victime",
+      "nom": "Secours à victime",
+      "interventions_2024": 3483000,
+      "part": 0.733,
+      "fiabilite": "S",
+      "gravite_nationale": {
+        "UA": 0.091,
+        "UR": 0.784,
+        "implique": 0.103,
+        "decede": 0.021
+      },
+      "sous_types": [
+        {
+          "id": "malaise_domicile",
+          "nom": "Malaise à domicile",
+          "poids": 0.28,
+          "gravite": "UR",
+          "depart_reflexe": {
+            "VSAV": 1
+          },
+          "renforts_possibles": [
+            "SMUR"
+          ],
+          "variantes": [
+            "diabetique",
+            "cardiaque",
+            "personne_agee_seule"
+          ],
+          "modulateurs": {
+            "nuit": 1.0
+          }
+        },
+        {
+          "id": "chute_personne_agee",
+          "nom": "Chute de personne âgée",
+          "poids": 0.18,
+          "gravite": "UR",
+          "depart_reflexe": {
+            "VSAV": 1
+          },
+          "renforts_possibles": [],
+          "variantes": [
+            "fracture_col_femur",
+            "au_sol_depuis_heures"
+          ],
+          "modulateurs": {
+            "nuit": 1.0
+          }
+        },
+        {
+          "id": "malaise_voie_publique",
+          "nom": "Malaise ou blessé sur la voie publique",
+          "poids": 0.14,
+          "gravite": "UR",
+          "depart_reflexe": {
+            "VSAV": 1
+          },
+          "renforts_possibles": [
+            "police"
+          ],
+          "variantes": [
+            "ivresse",
+            "epilepsie",
+            "chute_trottinette"
+          ],
+          "modulateurs": {
+            "nuit": 1.5
+          }
+        },
+        {
+          "id": "detresse_respiratoire",
+          "nom": "Détresse respiratoire",
+          "poids": 0.08,
+          "gravite": "UA",
+          "depart_reflexe": {
+            "VSAV": 1
+          },
+          "renforts_possibles": [
+            "SMUR"
+          ],
+          "variantes": [
+            "asthme",
+            "bpco",
+            "fausse_route"
+          ],
+          "modulateurs": {
+            "nuit": 1.0,
+            "saison": {
+              "hiver": 1.3
+            }
+          }
+        },
+        {
+          "id": "douleur_thoracique",
+          "nom": "Douleur thoracique",
+          "poids": 0.07,
+          "gravite": "UA",
+          "depart_reflexe": {
+            "VSAV": 1
+          },
+          "renforts_possibles": [
+            "SMUR"
+          ],
+          "variantes": [
+            "infarctus"
+          ],
+          "modulateurs": {
+            "nuit": 1.0
+          }
+        },
+        {
+          "id": "plaie_rixe",
+          "nom": "Plaie, rixe, agression",
+          "poids": 0.06,
+          "gravite": "UR",
+          "depart_reflexe": {
+            "VSAV": 1
+          },
+          "renforts_possibles": [
+            "police",
+            "SMUR"
+          ],
+          "variantes": [
+            "arme_blanche",
+            "violences_equipage"
+          ],
+          "modulateurs": {
+            "nuit": 2.0
+          }
+        },
+        {
+          "id": "intoxication",
+          "nom": "Intoxication",
+          "poids": 0.05,
+          "gravite": "UR",
+          "depart_reflexe": {
+            "VSAV": 1
+          },
+          "renforts_possibles": [
+            "FPT",
+            "SMUR"
+          ],
+          "variantes": [
+            "monoxyde_carbone_multi_victimes",
+            "medicaments",
+            "alcool"
+          ],
+          "modulateurs": {
+            "nuit": 1.0,
+            "saison": {
+              "hiver": 1.8
+            }
+          }
+        },
+        {
+          "id": "tentative_suicide",
+          "nom": "Tentative de suicide",
+          "poids": 0.04,
+          "gravite": "UR",
+          "depart_reflexe": {
+            "VSAV": 1
+          },
+          "renforts_possibles": [
+            "SMUR",
+            "police"
+          ],
+          "variantes": [
+            "phlebotomie",
+            "defenestration",
+            "pendaison"
+          ],
+          "modulateurs": {
+            "nuit": 1.0
+          }
+        },
+        {
+          "id": "accident_sport_travail",
+          "nom": "Accident sportif ou du travail",
+          "poids": 0.04,
+          "gravite": "UR",
+          "depart_reflexe": {
+            "VSAV": 1
+          },
+          "renforts_possibles": [
+            "SMUR"
+          ],
+          "variantes": [
+            "chute_echafaudage",
+            "malaise_stade"
+          ],
+          "modulateurs": {
+            "nuit": 0.3
+          }
+        },
+        {
+          "id": "arret_cardio_respiratoire",
+          "nom": "Arrêt cardio-respiratoire",
+          "poids": 0.03,
+          "gravite": "UA",
+          "depart_reflexe": {
+            "VSAV": 1,
+            "FPT": 1
+          },
+          "renforts_possibles": [
+            "SMUR",
+            "VLI"
+          ],
+          "variantes": [
+            "rcp",
+            "dsa"
+          ],
+          "modulateurs": {
+            "nuit": 1.0
+          }
+        },
+        {
+          "id": "accouchement",
+          "nom": "Accouchement inopiné",
+          "poids": 0.01,
+          "gravite": "UR",
+          "depart_reflexe": {
+            "VSAV": 1
+          },
+          "renforts_possibles": [
+            "SMUR"
+          ],
+          "variantes": [
+            "domicile",
+            "dans_vsav"
+          ],
+          "modulateurs": {
+            "nuit": 1.0
+          }
+        },
+        {
+          "id": "noyade",
+          "nom": "Noyade",
+          "poids": 0.01,
+          "gravite": "UA",
+          "depart_reflexe": {
+            "VSAV": 1,
+            "FPT": 1,
+            "equipe_SAV": 1
+          },
+          "renforts_possibles": [
+            "SMUR",
+            "helicoptere"
+          ],
+          "variantes": [
+            "loire",
+            "cher",
+            "piscine"
+          ],
+          "modulateurs": {
+            "nuit": 1.0,
+            "saison": {
+              "ete": 4.0
+            }
+          }
+        },
+        {
+          "id": "autre_sav",
+          "nom": "Autres secours à victime",
+          "poids": 0.01,
+          "gravite": "UR",
+          "depart_reflexe": {
+            "VSAV": 1
+          },
+          "renforts_possibles": [],
+          "variantes": [
+            "hypothermie",
+            "electrisation",
+            "personne_bloquee"
+          ],
+          "modulateurs": {
+            "nuit": 1.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "aide_personne",
+      "nom": "Aides à personne",
+      "interventions_2024": 333213,
+      "part": 0.07,
+      "fiabilite": "S",
+      "sous_types": [
+        {
+          "id": "relevage",
+          "nom": "Relevage sans blessure",
+          "poids": 0.55,
+          "gravite": "implique",
+          "depart_reflexe": {
+            "VSAV": 1
+          },
+          "renforts_possibles": [],
+          "variantes": [
+            "chute_du_lit"
+          ],
+          "modulateurs": {
+            "nuit": 1.0
+          }
+        },
+        {
+          "id": "personne_ne_repondant_pas",
+          "nom": "Personne ne répondant pas aux appels",
+          "poids": 0.35,
+          "gravite": "variable",
+          "depart_reflexe": {
+            "VSAV": 1,
+            "FPT": 1
+          },
+          "renforts_possibles": [
+            "police",
+            "EPA"
+          ],
+          "variantes": [
+            "porte_blindee",
+            "voisin_inquiet",
+            "deces_decouvert"
+          ],
+          "modulateurs": {
+            "nuit": 1.0
+          }
+        },
+        {
+          "id": "personne_en_difficulte",
+          "nom": "Personne en difficulté (hors urgence)",
+          "poids": 0.1,
+          "gravite": "implique",
+          "depart_reflexe": {
+            "VSAV": 1
+          },
+          "renforts_possibles": [],
+          "variantes": [
+            "enferme_dehors",
+            "enfant_seul"
+          ],
+          "modulateurs": {
+            "nuit": 1.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "accident_circulation",
+      "nom": "Accidents de circulation",
+      "interventions_2024": 303781,
+      "part": 0.064,
+      "fiabilite": "S",
+      "gravite_nationale": {
+        "UA": 0.064,
+        "UR": 0.757,
+        "implique": 0.172,
+        "decede": 0.007
+      },
+      "probabilite_desincarceration": 0.08,
+      "depart_si_desincarceration": {
+        "VSAV": 1,
+        "VSR": 1,
+        "FPT": 1
+      },
+      "sous_types": [
+        {
+          "id": "vl_seul",
+          "nom": "VL seul",
+          "poids": 0.3,
+          "gravite": "UR",
+          "depart_reflexe": {
+            "VSAV": 1,
+            "FPT": 1
+          },
+          "renforts_possibles": [
+            "VSR",
+            "SMUR"
+          ],
+          "variantes": [
+            "arbre",
+            "fosse",
+            "sur_le_toit"
+          ],
+          "modulateurs": {
+            "nuit": 1.3
+          }
+        },
+        {
+          "id": "vl_vl",
+          "nom": "VL contre VL",
+          "poids": 0.3,
+          "gravite": "UR",
+          "depart_reflexe": {
+            "VSAV": 1,
+            "FPT": 1
+          },
+          "renforts_possibles": [
+            "VSAV",
+            "VSR",
+            "SMUR",
+            "VLCG"
+          ],
+          "variantes": [
+            "plusieurs_victimes",
+            "incarceration"
+          ],
+          "modulateurs": {
+            "nuit": 1.0
+          }
+        },
+        {
+          "id": "deux_roues",
+          "nom": "Deux-roues motorisé",
+          "poids": 0.18,
+          "gravite": "UR",
+          "depart_reflexe": {
+            "VSAV": 1,
+            "FPT": 1
+          },
+          "renforts_possibles": [
+            "SMUR"
+          ],
+          "variantes": [
+            "motard_au_sol"
+          ],
+          "modulateurs": {
+            "nuit": 1.0,
+            "saison": {
+              "ete": 1.4
+            }
+          }
+        },
+        {
+          "id": "pieton_cycliste",
+          "nom": "Piéton ou cycliste renversé",
+          "poids": 0.16,
+          "gravite": "UR",
+          "depart_reflexe": {
+            "VSAV": 1,
+            "FPT": 1
+          },
+          "renforts_possibles": [
+            "SMUR"
+          ],
+          "variantes": [
+            "passage_pieton",
+            "centre_ville"
+          ],
+          "modulateurs": {
+            "nuit": 1.0
+          }
+        },
+        {
+          "id": "poids_lourd_bus",
+          "nom": "Poids lourd ou transport en commun",
+          "poids": 0.05,
+          "gravite": "UA",
+          "depart_reflexe": {
+            "VSAV": 2,
+            "FPT": 1,
+            "VSR": 1,
+            "VLCG": 1
+          },
+          "renforts_possibles": [
+            "VLCC",
+            "SMUR"
+          ],
+          "variantes": [
+            "autoroute_A10",
+            "bus",
+            "tramway"
+          ],
+          "modulateurs": {
+            "nuit": 1.0
+          }
+        },
+        {
+          "id": "ferroviaire",
+          "nom": "Accident ferroviaire",
+          "poids": 0.01,
+          "gravite": "UA",
+          "depart_reflexe": {
+            "VSAV": 2,
+            "FPT": 2,
+            "VSR": 1,
+            "VLCG": 1
+          },
+          "renforts_possibles": [
+            "VLCC",
+            "PCM",
+            "SMUR"
+          ],
+          "variantes": [
+            "passage_a_niveau"
+          ],
+          "modulateurs": {
+            "nuit": 1.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "incendie",
+      "nom": "Incendies",
+      "interventions_2024": 234702,
+      "part": 0.049,
+      "fiabilite": "S",
+      "note": "répartition des sous-types : approximation [A]",
+      "sous_types": [
+        {
+          "id": "feu_voie_publique",
+          "nom": "Poubelles, conteneurs, mobilier urbain",
+          "poids": 0.25,
+          "gravite": "aucune",
+          "depart_reflexe": {
+            "FPTL": 1
+          },
+          "renforts_possibles": [],
+          "variantes": [
+            "serie_nocturne",
+            "nouvel_an"
+          ],
+          "modulateurs": {
+            "nuit": 2.5
+          }
+        },
+        {
+          "id": "feu_habitation_individuelle",
+          "nom": "Feu d'habitation individuelle",
+          "poids": 0.12,
+          "gravite": "UR",
+          "depart_reflexe": {
+            "FPT": 2,
+            "VSAV": 1,
+            "VLCG": 1
+          },
+          "renforts_possibles": [
+            "EPA",
+            "CCGC"
+          ],
+          "variantes": [
+            "cuisine",
+            "cheminee",
+            "garage"
+          ],
+          "modulateurs": {
+            "nuit": 1.0,
+            "saison": {
+              "hiver": 1.4
+            }
+          }
+        },
+        {
+          "id": "feu_appartement",
+          "nom": "Feu d'appartement en immeuble",
+          "poids": 0.1,
+          "gravite": "UR",
+          "depart_reflexe": {
+            "FPT": 2,
+            "EPA": 1,
+            "VSAV": 1,
+            "VLCG": 1
+          },
+          "renforts_possibles": [
+            "EPA",
+            "FPT",
+            "VLCC",
+            "VSAV"
+          ],
+          "variantes": [
+            "etage",
+            "cage_escalier_enfumee",
+            "victime_a_la_fenetre"
+          ],
+          "modulateurs": {
+            "nuit": 1.0
+          }
+        },
+        {
+          "id": "feu_cave_parking",
+          "nom": "Feu de cave ou de parking",
+          "poids": 0.02,
+          "gravite": "UR",
+          "depart_reflexe": {
+            "FPT": 2,
+            "VSAV": 1,
+            "VLCG": 1
+          },
+          "renforts_possibles": [
+            "FPT",
+            "VLCC"
+          ],
+          "variantes": [
+            "parking_souterrain"
+          ],
+          "modulateurs": {
+            "nuit": 1.0
+          }
+        },
+        {
+          "id": "feu_vegetation",
+          "nom": "Feu d'espaces naturels",
+          "poids": 0.22,
+          "gravite": "aucune",
+          "depart_reflexe": {
+            "CCF": 2
+          },
+          "renforts_possibles": [
+            "CCF",
+            "VLHR"
+          ],
+          "variantes": [
+            "herbes",
+            "champ",
+            "sous_bois"
+          ],
+          "modulateurs": {
+            "nuit": 1.0,
+            "saison": {
+              "ete": 4.0,
+              "hiver": 0.3
+            }
+          }
+        },
+        {
+          "id": "feu_vehicule",
+          "nom": "Feu de véhicule",
+          "poids": 0.17,
+          "gravite": "aucune",
+          "depart_reflexe": {
+            "FPT": 1
+          },
+          "renforts_possibles": [],
+          "variantes": [
+            "voiture",
+            "deux_roues",
+            "poids_lourd"
+          ],
+          "modulateurs": {
+            "nuit": 1.8
+          }
+        },
+        {
+          "id": "feu_erp_industriel",
+          "nom": "Feu d'ERP, industriel ou agricole",
+          "poids": 0.07,
+          "gravite": "variable",
+          "depart_reflexe": {
+            "FPT": 3,
+            "EPA": 1,
+            "VSAV": 1,
+            "VLCG": 1,
+            "VLCC": 1
+          },
+          "renforts_possibles": [
+            "CCGC",
+            "PCM",
+            "FPT"
+          ],
+          "variantes": [
+            "ecole",
+            "commerce",
+            "entrepot",
+            "batiment_agricole"
+          ],
+          "modulateurs": {
+            "nuit": 1.0
+          }
+        },
+        {
+          "id": "feu_autre",
+          "nom": "Autres feux",
+          "poids": 0.05,
+          "gravite": "aucune",
+          "depart_reflexe": {
+            "FPTL": 1
+          },
+          "renforts_possibles": [],
+          "variantes": [
+            "haie",
+            "barbecue",
+            "toiture"
+          ],
+          "modulateurs": {
+            "nuit": 1.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "operations_diverses",
+      "nom": "Opérations diverses",
+      "interventions_2024": 344084,
+      "part": 0.072,
+      "fiabilite": "S",
+      "sous_types": [
+        {
+          "id": "epuisement",
+          "nom": "Épuisement, inondation",
+          "poids": 0.25,
+          "gravite": "aucune",
+          "depart_reflexe": {
+            "VTU": 1
+          },
+          "renforts_possibles": [
+            "FPT"
+          ],
+          "variantes": [
+            "orage",
+            "crue_loire",
+            "degat_des_eaux"
+          ],
+          "modulateurs": {
+            "nuit": 1.0
+          }
+        },
+        {
+          "id": "hymenopteres",
+          "nom": "Nid d'hyménoptères",
+          "poids": 0.2,
+          "gravite": "aucune",
+          "depart_reflexe": {
+            "VTU": 1
+          },
+          "renforts_possibles": [
+            "EPA"
+          ],
+          "variantes": [
+            "guepes",
+            "frelons_asiatiques"
+          ],
+          "modulateurs": {
+            "nuit": 1.0,
+            "saison": {
+              "ete": 4.0,
+              "hiver": 0.05
+            }
+          }
+        },
+        {
+          "id": "arbre_bachage",
+          "nom": "Arbre ou objet menaçant, bâchage",
+          "poids": 0.15,
+          "gravite": "aucune",
+          "depart_reflexe": {
+            "VTU": 1
+          },
+          "renforts_possibles": [
+            "FPT",
+            "EPA"
+          ],
+          "variantes": [
+            "tempete",
+            "toiture_arrachee"
+          ],
+          "modulateurs": {
+            "nuit": 1.0
+          }
+        },
+        {
+          "id": "ascenseur",
+          "nom": "Ascenseur bloqué",
+          "poids": 0.12,
+          "gravite": "implique",
+          "depart_reflexe": {
+            "VTU": 1
+          },
+          "renforts_possibles": [
+            "FPT"
+          ],
+          "variantes": [
+            "entre_deux_etages"
+          ],
+          "modulateurs": {
+            "nuit": 1.0
+          }
+        },
+        {
+          "id": "animaux",
+          "nom": "Animaux",
+          "poids": 0.1,
+          "gravite": "aucune",
+          "depart_reflexe": {
+            "VTU": 1
+          },
+          "renforts_possibles": [],
+          "variantes": [
+            "chat_sur_toit",
+            "chien_autoroute"
+          ],
+          "modulateurs": {
+            "nuit": 1.0
+          }
+        },
+        {
+          "id": "divers",
+          "nom": "Nettoyage de chaussée, recherche de personne, divers",
+          "poids": 0.18,
+          "gravite": "aucune",
+          "depart_reflexe": {
+            "VTU": 1
+          },
+          "renforts_possibles": [
+            "FPT"
+          ],
+          "variantes": [
+            "huile_route",
+            "personne_disparue"
+          ],
+          "modulateurs": {
+            "nuit": 1.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "risques_technologiques",
+      "nom": "Risques technologiques",
+      "interventions_2024": 56031,
+      "part": 0.012,
+      "fiabilite": "S",
+      "sous_types": [
+        {
+          "id": "gaz",
+          "nom": "Fuite ou odeur de gaz",
+          "poids": 0.6,
+          "gravite": "implique",
+          "depart_reflexe": {
+            "FPT": 1
+          },
+          "renforts_possibles": [
+            "VLCG",
+            "VSAV",
+            "GRDF"
+          ],
+          "variantes": [
+            "logement",
+            "conduite_arrachee_travaux"
+          ],
+          "modulateurs": {
+            "nuit": 1.0,
+            "saison": {
+              "hiver": 1.3
+            }
+          }
+        },
+        {
+          "id": "detecteur_co",
+          "nom": "Déclenchement de détecteur CO ou alarme",
+          "poids": 0.2,
+          "gravite": "variable",
+          "depart_reflexe": {
+            "FPT": 1
+          },
+          "renforts_possibles": [
+            "VSAV"
+          ],
+          "variantes": [
+            "levee_de_doute"
+          ],
+          "modulateurs": {
+            "nuit": 1.0,
+            "saison": {
+              "hiver": 1.6
+            }
+          }
+        },
+        {
+          "id": "matieres_dangereuses",
+          "nom": "Fuite de matières dangereuses",
+          "poids": 0.15,
+          "gravite": "variable",
+          "depart_reflexe": {
+            "FPT": 1,
+            "VLCG": 1,
+            "CMIC": 1
+          },
+          "renforts_possibles": [
+            "VLCC",
+            "SMUR"
+          ],
+          "variantes": [
+            "camion_citerne",
+            "laboratoire"
+          ],
+          "modulateurs": {
+            "nuit": 1.0
+          }
+        },
+        {
+          "id": "nrbc",
+          "nom": "Risque radiologique ou biologique",
+          "poids": 0.05,
+          "gravite": "variable",
+          "depart_reflexe": {
+            "FPT": 1,
+            "VLCG": 1
+          },
+          "renforts_possibles": [
+            "VLCC"
+          ],
+          "variantes": [
+            "colis_suspect"
+          ],
+          "modulateurs": {
+            "nuit": 1.0
+          }
+        }
+      ]
+    }
+  ],
+  "grades": [
+    {
+      "ordre": 1,
+      "grade": "Sapeur",
+      "emplois": [
+        "equipier_vsav",
+        "equipier_bal"
+      ]
+    },
+    {
+      "ordre": 2,
+      "grade": "Sapeur 1re classe",
+      "emplois": [
+        "equipier_bat",
+        "equipier_vtu",
+        "equipier_vsr"
+      ],
+      "note": "volontaires"
+    },
+    {
+      "ordre": 3,
+      "grade": "Caporal",
+      "emplois": [
+        "chef_equipe",
+        "conducteur"
+      ]
+    },
+    {
+      "ordre": 4,
+      "grade": "Caporal-chef",
+      "emplois": [
+        "chef_equipe",
+        "chef_agres_vsav",
+        "chef_agres_vtu"
+      ]
+    },
+    {
+      "ordre": 5,
+      "grade": "Sergent",
+      "emplois": [
+        "chef_agres_fpt",
+        "chef_agres_epa",
+        "chef_agres_vsr"
+      ]
+    },
+    {
+      "ordre": 6,
+      "grade": "Adjudant",
+      "emplois": [
+        "chef_agres_tout_engin",
+        "adjoint_chef_garde"
+      ]
+    },
+    {
+      "ordre": 7,
+      "grade": "Adjudant-chef",
+      "emplois": [
+        "chef_garde",
+        "chef_groupe"
+      ]
+    },
+    {
+      "ordre": 8,
+      "grade": "Lieutenant",
+      "emplois": [
+        "chef_groupe"
+      ]
+    },
+    {
+      "ordre": 9,
+      "grade": "Capitaine",
+      "emplois": [
+        "chef_colonne",
+        "chef_centre"
+      ]
+    },
+    {
+      "ordre": 10,
+      "grade": "Commandant",
+      "emplois": [
+        "chef_colonne",
+        "chef_groupement"
+      ]
+    },
+    {
+      "ordre": 11,
+      "grade": "Lieutenant-colonel",
+      "emplois": [
+        "chef_site"
+      ]
+    },
+    {
+      "ordre": 12,
+      "grade": "Colonel",
+      "emplois": [
+        "directeur_departemental"
+      ]
+    },
+    {
+      "ordre": 13,
+      "grade": "Contrôleur général",
+      "emplois": [
+        "direction_nationale"
+      ]
+    }
+  ],
+  "echelons_commandement": [
+    {
+      "niveau": "agres",
+      "engins": "1"
+    },
+    {
+      "niveau": "groupe",
+      "engins": "2-4",
+      "chef": "chef_groupe",
+      "vehicule": "VLCG"
+    },
+    {
+      "niveau": "colonne",
+      "groupes": "2-4",
+      "chef": "chef_colonne",
+      "vehicule": "VLCC"
+    },
+    {
+      "niveau": "site",
+      "colonnes": "2+",
+      "chef": "chef_site",
+      "vehicule": "PCM"
+    }
+  ],
+  "statuts_radio": [
+    "disponible",
+    "parti",
+    "sur_les_lieux",
+    "transport_hopital",
+    "arrive_hopital",
+    "retour",
+    "indisponible"
+  ],
+  "sdis_fictif": {
+    "nom": "SDIS fictif de Touraine",
+    "inspiration": "SDIS 37 (Indre-et-Loire)",
+    "fiabilite": "A",
+    "note": "Casernes et parcs inventés pour le jeu ; organisation réelle du SDIS 37 non vérifiée (site et règlement opérationnel inaccessibles).",
+    "cta_codis": {
+      "nom": "CTA-CODIS de Tours",
+      "numeros": [
+        "18",
+        "112"
+      ]
+    },
+    "casernes": [
+      {
+        "id": "tours_centre",
+        "nom": "Tours-Centre",
+        "type": "CSP",
+        "garde": "garde_postee_pro",
+        "delai_depart_min": {
+          "jour": 2,
+          "nuit": 2
+        },
+        "parc": {
+          "VSAV": 2,
+          "FPT": 2,
+          "EPA": 1,
+          "EPC": 1,
+          "VSR": 1,
+          "VTU": 1,
+          "VLCG": 1
+        },
+        "secteur": "Vieux-Tours, rue Nationale, gare, immeubles anciens",
+        "point_depart_joueur": false
+      },
+      {
+        "id": "tours_nord_agglo",
+        "nom": "Tours Nord-Agglo",
+        "type": "CSP",
+        "garde": "garde_postee_pro",
+        "delai_depart_min": {
+          "jour": 2,
+          "nuit": 2
+        },
+        "parc": {
+          "VSAV": 2,
+          "FPT": 1,
+          "EPA": 1,
+          "VTU": 1,
+          "CCF": 1,
+          "VLCC": 1,
+          "PCM": 1
+        },
+        "secteur": "Rive nord, grands ensembles, zones commerciales, A10 nord",
+        "point_depart_joueur": false
+      },
+      {
+        "id": "joue_les_tours",
+        "nom": "Joué-lès-Tours",
+        "type": "CS_mixte",
+        "garde": "pro_jour_spv_nuit",
+        "delai_depart_min": {
+          "jour": 3,
+          "nuit": 7
+        },
+        "parc": {
+          "VSAV": 2,
+          "FPT": 1,
+          "VSR": 1,
+          "VTU": 1
+        },
+        "secteur": "Quartiers résidentiels, rocade",
+        "point_depart_joueur": true
+      },
+      {
+        "id": "saint_pierre_des_corps",
+        "nom": "Saint-Pierre-des-Corps",
+        "type": "CS_mixte",
+        "garde": "pro_jour_spv_nuit",
+        "delai_depart_min": {
+          "jour": 3,
+          "nuit": 7
+        },
+        "parc": {
+          "VSAV": 1,
+          "FPT": 1,
+          "VTU": 1,
+          "CMIC": 1
+        },
+        "secteur": "Gare de triage, zone industrielle, dépôts d'hydrocarbures",
+        "point_depart_joueur": false
+      },
+      {
+        "id": "chambray_les_tours",
+        "nom": "Chambray-lès-Tours",
+        "type": "CS",
+        "garde": "astreinte_spv",
+        "delai_depart_min": {
+          "jour": 7,
+          "nuit": 7
+        },
+        "parc": {
+          "VSAV": 1,
+          "FPTSR": 1
+        },
+        "secteur": "CHRU Trousseau, A10 sud",
+        "point_depart_joueur": false
+      },
+      {
+        "id": "amboise",
+        "nom": "Amboise",
+        "type": "CS",
+        "garde": "spv_pro_jour",
+        "delai_depart_min": {
+          "jour": 5,
+          "nuit": 8
+        },
+        "parc": {
+          "VSAV": 1,
+          "FPT": 1,
+          "CCF": 1,
+          "VTU": 1
+        },
+        "secteur": "Château, tourisme estival, forêt d'Amboise",
+        "point_depart_joueur": false
+      },
+      {
+        "id": "vouvray",
+        "nom": "Vouvray",
+        "type": "CPI",
+        "garde": "astreinte_spv",
+        "delai_depart_min": {
+          "jour": 8,
+          "nuit": 10
+        },
+        "parc": {
+          "VSAV": 1,
+          "FPTL": 1,
+          "CCF": 1
+        },
+        "secteur": "Vignoble, caves troglodytiques",
+        "point_depart_joueur": false
+      },
+      {
+        "id": "chinon",
+        "nom": "Chinon",
+        "type": "CS",
+        "garde": "spv_pro_jour",
+        "delai_depart_min": {
+          "jour": 5,
+          "nuit": 8
+        },
+        "parc": {
+          "VSAV": 1,
+          "FPT": 1,
+          "VSR": 1,
+          "CCF": 1
+        },
+        "secteur": "Ville médiévale, vignoble, proximité CNPE",
+        "point_depart_joueur": false
+      }
+    ],
+    "hopitaux": [
+      {
+        "id": "bretonneau",
+        "nom": "CHRU Tours - Bretonneau",
+        "commune": "Tours",
+        "accueil": [
+          "adultes",
+          "urgences"
+        ]
+      },
+      {
+        "id": "trousseau",
+        "nom": "CHRU Tours - Trousseau",
+        "commune": "Chambray-lès-Tours",
+        "accueil": [
+          "adultes",
+          "urgences",
+          "traumatologie"
+        ]
+      },
+      {
+        "id": "clocheville",
+        "nom": "CHRU Tours - Clocheville",
+        "commune": "Tours",
+        "accueil": [
+          "pediatrie"
+        ]
+      }
+    ],
+    "lieux_a_risque": [
+      {
+        "id": "loire_cher",
+        "nom": "Loire et Cher, ponts et levées",
+        "sous_types": [
+          "noyade",
+          "epuisement"
+        ]
+      },
+      {
+        "id": "autoroutes",
+        "nom": "A10, A28, A85, périphérique",
+        "sous_types": [
+          "vl_vl",
+          "poids_lourd_bus",
+          "vl_seul"
+        ]
+      },
+      {
+        "id": "gares",
+        "nom": "Gares de Tours et Saint-Pierre-des-Corps",
+        "sous_types": [
+          "malaise_voie_publique",
+          "ferroviaire",
+          "matieres_dangereuses"
+        ]
+      },
+      {
+        "id": "tramway",
+        "nom": "Tramway de Tours",
+        "sous_types": [
+          "pieton_cycliste"
+        ]
+      },
+      {
+        "id": "vieux_tours",
+        "nom": "Vieux-Tours (place Plumereau)",
+        "sous_types": [
+          "plaie_rixe",
+          "malaise_voie_publique",
+          "feu_appartement"
+        ],
+        "nuit": 2.5
+      },
+      {
+        "id": "troglodytes",
+        "nom": "Caves et habitats troglodytiques",
+        "sous_types": [
+          "intoxication",
+          "divers"
+        ],
+        "note": "éboulement, sauvetage-déblaiement"
+      },
+      {
+        "id": "chateaux",
+        "nom": "Châteaux (Amboise, Chenonceau, Chinon)",
+        "sous_types": [
+          "feu_erp_industriel",
+          "malaise_voie_publique"
+        ],
+        "saison": {
+          "ete": 2.0
+        }
+      },
+      {
+        "id": "forets",
+        "nom": "Forêts d'Amboise, Loches, Chinon",
+        "sous_types": [
+          "feu_vegetation",
+          "accident_sport_travail"
+        ],
+        "saison": {
+          "ete": 3.0
+        }
+      },
+      {
+        "id": "cnpe_chinon",
+        "nom": "Centrale nucléaire de Chinon (Avoine)",
+        "sous_types": [
+          "nrbc"
+        ],
+        "note": "scénario rare"
+      },
+      {
+        "id": "vignobles_agricole",
+        "nom": "Zones agricoles et vignobles",
+        "sous_types": [
+          "accident_sport_travail",
+          "feu_vegetation",
+          "intoxication"
+        ],
+        "note": "tracteur, moissons, CO2 en cuve"
+      }
+    ],
+    "parcours_carriere": [
+      "joue_les_tours: sapeur à caporal-chef",
+      "tours_centre: sergent à adjudant-chef (garde postée)",
+      "departement: lieutenant et au-delà (groupe, colonne, site)"
+    ]
+  }
+}
