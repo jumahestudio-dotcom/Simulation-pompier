@@ -99,7 +99,7 @@ static func asphalte() -> ImageTexture:
 	if _textures.has("asphalte"):
 		return _textures["asphalte"]
 	var img := _bruit(256, 256, 0.03, 5)
-	_teinter(img, Color(0.17, 0.17, 0.18), Color(0.27, 0.27, 0.28), 0.06)
+	_teinter(img, Color(0.25, 0.25, 0.26), Color(0.36, 0.36, 0.37), 0.07)
 	var tex := _finir(img)
 	_textures["asphalte"] = tex
 	return tex
@@ -258,8 +258,59 @@ static func crepi() -> ImageTexture:
 # Matériaux (avec mise en cache)
 # ---------------------------------------------------------------------------
 
+## Carte de relief (normal map) tirée de l'image : les parties sombres (joints, vitres) paraissent creusées.
+static func normale(nom: String, tex: Texture2D, force: float) -> ImageTexture:
+	var cle := "n|" + nom
+	if _textures.has(cle):
+		return _textures[cle]
+	var img: Image = tex.get_image().duplicate()
+	img.clear_mipmaps()
+	img.convert(Image.FORMAT_RGBA8)
+	# Relief = luminosité (le calcul lit le canal rouge)
+	for y in img.get_height():
+		for x in img.get_width():
+			var v: float = img.get_pixel(x, y).get_luminance()
+			img.set_pixel(x, y, Color(v, v, v))
+	img.bump_map_to_normal_map(force)
+	var t := _finir(img)
+	_textures[cle] = t
+	return t
+
+
+## Grandes taches claires/sombres (salissures, usure) qui cassent la répétition des textures.
+static func macro() -> ImageTexture:
+	if _textures.has("macro"):
+		return _textures["macro"]
+	var n := FastNoiseLite.new()
+	n.seed = 77
+	n.frequency = 0.012
+	n.fractal_octaves = 5
+	var img: Image = n.get_seamless_image(256, 256)
+	img.convert(Image.FORMAT_RGBA8)
+	for y in 256:
+		for x in 256:
+			var v: float = img.get_pixel(x, y).r
+			var c: float = lerpf(0.8, 1.0, smoothstep(0.2, 0.8, v))
+			img.set_pixel(x, y, Color(c, c, c * 0.985, 1.0))
+	var t := _finir(img)
+	_textures["macro"] = t
+	return t
+
+
+## Fine patine presque blanche, posée sur les objets de couleur unie.
+static func salissure() -> ImageTexture:
+	if _textures.has("salissure"):
+		return _textures["salissure"]
+	var img := _bruit(128, 128, 0.06, 91)
+	_teinter(img, Color(0.84, 0.83, 0.81), Color(1.0, 1.0, 1.0), 0.03)
+	var t := _finir(img)
+	_textures["salissure"] = t
+	return t
+
+
 ## Matériau « plaqué » sur le monde : la texture se répète selon la taille réelle (en mètres).
-static func plaque(nom: String, tex: Texture2D, metres_x: float, metres_y: float, teinte: Color = Color.WHITE, rugosite: float = 0.9) -> StandardMaterial3D:
+## "relief" : force de la carte de relief (0 = surface lisse).
+static func plaque(nom: String, tex: Texture2D, metres_x: float, metres_y: float, teinte: Color = Color.WHITE, rugosite: float = 0.9, relief: float = 3.0) -> StandardMaterial3D:
 	var cle := "%s|%s|%.2f|%.2f" % [nom, teinte.to_html(), metres_x, metres_y]
 	if _materiaux.has(cle):
 		return _materiaux[cle]
@@ -271,6 +322,18 @@ static func plaque(nom: String, tex: Texture2D, metres_x: float, metres_y: float
 	m.uv1_scale = Vector3(1.0 / metres_x, 1.0 / metres_y, 1.0 / metres_x)
 	m.roughness = rugosite
 	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	if relief > 0.0:
+		m.normal_enabled = true
+		m.normal_texture = normale(nom, tex, relief)
+		m.normal_scale = 1.0
+	# Usure et salissures à grande échelle (environ 35 m), pour éviter l'effet « papier peint ».
+	m.detail_enabled = true
+	m.detail_blend_mode = BaseMaterial3D.BLEND_MODE_MUL
+	m.detail_uv_layer = BaseMaterial3D.DETAIL_UV_2
+	m.detail_albedo = macro()
+	m.uv2_triplanar = true
+	m.uv2_world_triplanar = true
+	m.uv2_scale = Vector3.ONE / 35.0
 	_materiaux[cle] = m
 	return m
 
@@ -280,19 +343,19 @@ static func mat_facade(teinte: Color) -> StandardMaterial3D:
 
 
 static func mat_ardoise() -> StandardMaterial3D:
-	return plaque("ardoise", ardoise(), 2.0, 2.0, Color.WHITE, 0.6)
+	return plaque("ardoise", ardoise(), 2.0, 2.0, Color.WHITE, 0.55, 4.0)
 
 
 static func mat_asphalte() -> StandardMaterial3D:
-	return plaque("asphalte", asphalte(), 6.0, 6.0, Color.WHITE, 0.95)
+	return plaque("asphalte", asphalte(), 6.0, 6.0, Color.WHITE, 0.92, 2.0)
 
 
 static func mat_paves() -> StandardMaterial3D:
-	return plaque("paves", paves(), 1.5, 1.5)
+	return plaque("paves", paves(), 1.5, 1.5, Color.WHITE, 0.85, 5.0)
 
 
 static func mat_herbe() -> StandardMaterial3D:
-	return plaque("herbe", herbe(), 8.0, 8.0)
+	return plaque("herbe", herbe(), 8.0, 8.0, Color.WHITE, 0.95, 2.0)
 
 
 static func mat_beton(teinte: Color = Color.WHITE) -> StandardMaterial3D:
@@ -306,8 +369,12 @@ static func carrosserie(c: Color) -> StandardMaterial3D:
 		return _materiaux[cle]
 	var m := StandardMaterial3D.new()
 	m.albedo_color = c
-	m.metallic = 0.25
-	m.roughness = 0.35
+	m.metallic = 0.3
+	m.roughness = 0.32
+	# Vernis : reflet net par-dessus la peinture, comme une vraie carrosserie.
+	m.clearcoat_enabled = true
+	m.clearcoat = 0.8
+	m.clearcoat_roughness = 0.12
 	_materiaux[cle] = m
 	return m
 

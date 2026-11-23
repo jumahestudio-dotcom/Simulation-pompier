@@ -3,6 +3,26 @@
 extends RefCounted
 
 static var _materiaux: Dictionary = {}
+static var _tex_patine: ImageTexture = null
+
+
+static func _patine() -> ImageTexture:
+	if _tex_patine == null:
+		var n := FastNoiseLite.new()
+		n.seed = 91
+		n.frequency = 0.05
+		n.fractal_octaves = 4
+		var img: Image = n.get_seamless_image(128, 128)
+		img.convert(Image.FORMAT_RGBA8)
+		var rng := RandomNumberGenerator.new()
+		rng.seed = 5
+		for y in 128:
+			for x in 128:
+				var v: float = lerpf(0.86, 1.0, img.get_pixel(x, y).r) + rng.randf_range(-0.02, 0.02)
+				img.set_pixel(x, y, Color(v, v, v))
+		img.generate_mipmaps()
+		_tex_patine = ImageTexture.create_from_image(img)
+	return _tex_patine
 
 
 static func mat(couleur: Color, emission: float = 0.0) -> StandardMaterial3D:
@@ -17,6 +37,13 @@ static func mat(couleur: Color, emission: float = 0.0) -> StandardMaterial3D:
 		m.emission_enabled = true
 		m.emission = couleur
 		m.emission_energy_multiplier = emission
+	elif couleur.a >= 1.0:
+		# Fine patine pour que les surfaces unies ne paraissent pas en plastique neuf.
+		m.albedo_texture = _patine()
+		m.uv1_triplanar = true
+		m.uv1_scale = Vector3.ONE * 0.6
+		m.roughness = 0.82
+		m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 	_materiaux[cle] = m
 	return m
 
