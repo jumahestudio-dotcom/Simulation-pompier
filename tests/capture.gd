@@ -41,6 +41,12 @@ func _ready() -> void:
 		["16_lotissement", Vector3(55, 1.8, -224), Vector3(90, 2.0, -230)],
 		["17_tour", Vector3(-205, 6, -228), Vector3(-235, 14, -255)],
 		["18_toits", Vector3(80, 22, -25), Vector3(130, 8, -60)],
+		["19_foret", Vector3(150, 25, -400), Vector3(150, 0, -560)],
+		["20_aire_de_jeux", Vector3(-190, 6, -212), Vector3(-205, 0, -228)],
+		["21_square", Vector3(-30, 18, 300), Vector3(-75, 0, 330)],
+		["22_stade", Vector3(450, 45, 260), Vector3(565, 0, 380)],
+		["23_cimetiere", Vector3(360, 15, 330), Vector3(415, 0, 400)],
+		["24_pres", Vector3(-650, 12, -80), Vector3(-705, 0, 0)],
 	]
 	for v in vues:
 		cam.global_position = v[1]

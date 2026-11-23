@@ -12,6 +12,7 @@ func _ready() -> void:
 	add_child(main)
 	main.vitesse_test = 8.0
 	await get_tree().create_timer(1.0).timeout
+	await _test_portes_vsav()
 	for id in ["malaise_domicile", "malaise_voie_publique", "feu_appartement"]:
 		for essai in 2:
 			await _jouer(id)
@@ -19,6 +20,32 @@ func _ready() -> void:
 	for r in resultats:
 		print(r)
 	get_tree().quit()
+
+
+## Ouvre les portes arrière par l'interaction, monte dans la cellule, ressort, referme.
+func _test_portes_vsav() -> void:
+	var v = main.vsav
+	main.joueur.teleporter(v.to_global(Vector3(0, 0.05, 3.9)), v.rotation.y + PI)
+	await get_tree().create_timer(0.2).timeout
+	for nom in ["arriere_gauche", "arriere_droite"]:
+		v.basculer_porte(nom)
+	await get_tree().create_timer(1.5).timeout
+	var monter: Array = main._interactions_engins().filter(func(i): return i["id"] == "monter_ar")
+	if monter.is_empty():
+		resultats.append("portes VSAV : ÉCHEC (pas de proposition pour monter)")
+		return
+	monter[0]["action"].call()
+	await get_tree().create_timer(0.5).timeout
+	var dedans: bool = v.dans_cellule(main.joueur.global_position + Vector3(0, 0.3, 0))
+	var descendre: Array = main._interactions_engins().filter(func(i): return i["id"] == "descendre")
+	if not dedans or descendre.is_empty():
+		resultats.append("portes VSAV : ÉCHEC (joueur pas dans la cellule)")
+		return
+	descendre[0]["action"].call()
+	v.fermer_portes()
+	await get_tree().create_timer(1.5).timeout
+	main.joueur.teleporter(Vector3(-250, 0.2, -22), 0.0)
+	resultats.append("portes VSAV : OK (monté et descendu)")
 
 
 func _attendre_etat(e: String, max_s: float) -> bool:

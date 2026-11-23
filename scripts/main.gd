@@ -69,6 +69,7 @@ var test_arrosage := false
 var vitesse_test := 1.0
 
 var _proche = null
+var _assis = null   # engin dans lequel le joueur est assis (place passager)
 var _t_alarme := 0.0
 var _t_conseil := 0.0
 var _t_alimentation := 0.0
@@ -165,6 +166,7 @@ func _entrees() -> void:
 	_action("appel_suivant", [KEY_N])
 	_action("tirage", [KEY_F2])
 	_action("souris", [KEY_ESCAPE])
+	_action("camera", [KEY_C])
 	var chiffres: Array = [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7]
 	for i in chiffres.size():
 		_action("geste_%d" % (i + 1), [chiffres[i], KEY_KP_1 + i])
@@ -297,6 +299,69 @@ func _chercher_interaction() -> void:
 		if d <= it["rayon"] and d < meilleur:
 			meilleur = d
 			_proche = it
+	for it in _interactions_engins():
+		var d2: float = p.distance_to(it["pos"])
+		if d2 <= it["rayon"] and d2 < meilleur:
+			meilleur = d2
+			_proche = it
+
+
+## Portes du VSAV : ouvrir/fermer, monter dans la cellule, s'asseoir, descendre.
+func _interactions_engins() -> Array:
+	var res: Array = []
+	for e in engins:
+		if e.portes.is_empty() or e.en_route:
+			continue
+		if e.global_position.distance_to(joueur.global_position) > 9.0:
+			continue
+		var dedans: bool = e.dans_cellule(joueur.global_position + Vector3(0, 0.3, 0))
+		for nom in e.portes:
+			var pt: Dictionary = e.portes[nom]
+			var verbe := "Fermer " if pt["ouvert"] else "Ouvrir "
+			var pos_l: Vector3 = pt["point"]
+			if dedans:
+				# De l'intérieur, on attrape la porte par sa poignée intérieure
+				pos_l = Vector3(clampf(pos_l.x, -0.7, 0.7), 1.2, clampf(pos_l.z, -0.6, 2.7))
+			res.append({"id": "porte_" + nom, "pos": e.to_global(pos_l), "rayon": 1.4, "texte": verbe + str(pt["texte"]), "action": e.basculer_porte.bind(nom)})
+		var arriere: bool = e.porte_ouverte("arriere_gauche") or e.porte_ouverte("arriere_droite")
+		if dedans:
+			if arriere:
+				res.append({"id": "descendre", "pos": e.to_global(Vector3(0, 1.75, 2.55)), "rayon": 1.0, "texte": "Descendre par l'arrière", "action": _descendre_cellule.bind(e, "arriere")})
+			if e.porte_ouverte("laterale"):
+				res.append({"id": "descendre_lat", "pos": e.to_global(Vector3(0.5, 1.75, -0.1)), "rayon": 1.0, "texte": "Descendre par la porte latérale", "action": _descendre_cellule.bind(e, "laterale")})
+		else:
+			if arriere:
+				res.append({"id": "monter_ar", "pos": e.to_global(Vector3(0, 1.0, 3.75)), "rayon": 1.1, "texte": "Monter dans la cellule", "action": _monter_cellule.bind(e)})
+			if e.porte_ouverte("laterale"):
+				res.append({"id": "monter_lat", "pos": e.to_global(Vector3(1.75, 1.0, 0.1)), "rayon": 1.0, "texte": "Monter dans la cellule", "action": _monter_cellule.bind(e)})
+			if e.porte_ouverte("avant_droite"):
+				res.append({"id": "asseoir", "pos": e.to_global(Vector3(1.75, 1.0, -1.15)), "rayon": 0.9, "texte": "S'asseoir à la place passager", "action": _s_asseoir.bind(e)})
+	return res
+
+
+func _monter_cellule(e) -> void:
+	joueur.teleporter(e.to_global(Vector3(0.15, 0.78, 2.2)), e.rotation.y)
+
+
+func _descendre_cellule(e, par: String) -> void:
+	if par == "arriere":
+		joueur.teleporter(e.to_global(Vector3(0, 0.05, 4.2)), e.rotation.y + PI)
+	else:
+		joueur.teleporter(e.to_global(Vector3(1.9, 0.05, 0.1)), e.rotation.y - PI * 0.5)
+
+
+func _s_asseoir(e) -> void:
+	_assis = e
+	joueur.activer(false)
+	e.vue(1)
+	hud.radio("Vous", "Installé à la place passager. (E pour descendre)", "#dddddd")
+
+
+func _se_lever() -> void:
+	var e = _assis
+	_assis = null
+	joueur.teleporter(e.to_global(Vector3(1.9, 0.05, -1.3)), e.rotation.y - PI * 0.5)
+	joueur.activer(true)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -310,8 +375,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	if clic != null and clic.pressed and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 		return
+	if event.is_action_pressed("camera"):
+		var trajet := etat == "trajet" or etat == "transport" or etat == "retour"
+		if trajet and mission.has("engin"):
+			hud.set_invite(mission["engin"].changer_camera())
+		return
 	if event.is_action_pressed("interagir"):
-		if etat == "fin" and hud.fin_visible():
+		if _assis != null:
+			_se_lever()
+		elif etat == "fin" and hud.fin_visible():
 			_reprendre_garde()
 		elif _proche != null:
 			var act: Callable = _proche["action"]
@@ -602,7 +674,8 @@ func _partir_vers_lieux() -> void:
 	joueur.activer(false)
 	var noeud: String = mission["sc"]["noeud"]
 	var e = mission["engin"]
-	e.camera.current = true
+	_assis = null
+	e.vue(0)
 	_set_statut("parti", e.code)
 	var engages := _engins_engages()
 	for i in engages.size():
@@ -728,6 +801,10 @@ func _geste(i: int) -> void:
 		_chef_dit("On part sur le centre hospitalier. Monte à l'arrière avec la victime.")
 		retirer_interaction("victime")
 		var e = mission["engin"]
+		# On charge par l'arrière : portes ouvertes, victime installée sur le brancard de la cellule
+		e.ouvrir_porte("arriere_gauche")
+		e.ouvrir_porte("arriere_droite")
+		e.victime_a_bord(true)
 		ajouter_interaction("transport", e.global_position + Vector3(0, 1.5, 0), 6.0, "Monter dans le VSAV (transport)", _partir_hopital)
 
 
@@ -764,7 +841,7 @@ func _partir_hopital() -> void:
 	etat = "transport"
 	var e = mission["engin"]
 	joueur.activer(false)
-	e.camera.current = true
+	e.vue(2)   # on voyage à l'arrière, avec la victime
 	_set_statut("transport_hopital", e.code)
 	for c in _equipage(e):
 		c.visible = false
@@ -776,6 +853,7 @@ func _partir_hopital() -> void:
 func _a_l_hopital() -> void:
 	var e = mission["engin"]
 	_set_statut("arrive_hopital", e.code)
+	e.victime_a_bord(false)
 	hud.radio("Infirmière d'accueil", "On la prend en salle 3. Merci les pompiers.", "#c89bff")
 	_rentrer_au_centre(e, "H")
 

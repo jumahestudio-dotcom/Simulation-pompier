@@ -271,7 +271,7 @@ static func mobilier_centre(racine: Node3D, rng: RandomNumberGenerator) -> void:
 		var z2 := -135.0
 		while z2 < 110.0:
 			if absf(z2) > 20.0:
-				lampadaire(Vector3(xs + 5.6, 0, z2), PI)
+				lampadaire(Vector3(xs + 5.9, 0, z2), -PI * 0.5)
 			z2 += 28.0
 
 

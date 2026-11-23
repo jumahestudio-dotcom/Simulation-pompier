@@ -70,7 +70,7 @@ static func construire(racine: Node3D) -> void:
 			Geo.sphere(racine, 1.8, Vector3(xa + 1.3, 6.6, zz + 0.6), feuillage.lightened(0.08))
 			Geo.sphere(racine, 1.7, Vector3(xa - 1.2, 6.3, zz - 0.7), feuillage.darkened(0.08))
 			# Lampadaire entre deux arbres
-			_lampadaire(racine, Vector3(xa + 11.0, 0, zz + signf(zz) * 0.8))
+			_lampadaire(racine, Vector3(xa + 11.0, 0, signf(zz) * 9.0))
 		xa += 22.0
 	# Îlots d'immeubles
 	var blocs_x: Array = [[-320.0, -205.0], [-195.0, -55.0], [-45.0, 95.0], [105.0, 245.0], [255.0, 320.0]]
@@ -229,7 +229,8 @@ static func _lampadaire(racine: Node3D, pos: Vector3) -> void:
 	Geo.cylindre(racine, 0.08, 6.0, pos + Vector3(0, 3.0, 0), Color(0.18, 0.2, 0.22))
 	var bras: Node3D = Geo.boite(racine, Vector3(0.12, 0.12, 1.4), pos + Vector3(0, 6.0, -signf(pos.z) * 0.6), Color(0.18, 0.2, 0.22), false)
 	bras.name = "bras"
-	Geo.boite(racine, Vector3(0.5, 0.2, 0.7), pos + Vector3(0, 5.9, -signf(pos.z) * 1.2), Color(0.85, 0.85, 0.8), false)
+	Geo.boite(racine, Vector3(0.5, 0.2, 0.7), pos + Vector3(0, 5.9, -signf(pos.z) * 1.2), Color(0.18, 0.2, 0.22), false)
+	Geo.boite_mat(racine, Vector3(0.4, 0.04, 0.6), pos + Vector3(0, 5.79, -signf(pos.z) * 1.2), Geo.mat(Color(1.0, 0.93, 0.78), 1.2), false)
 
 
 static func _voitures_garees(racine: Node3D, rng: RandomNumberGenerator) -> void:

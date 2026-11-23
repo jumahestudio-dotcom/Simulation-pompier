@@ -5,6 +5,7 @@ extends Node3D
 const Geo = preload("res://scripts/geo.gd")
 const Son = preload("res://scripts/son.gd")
 const Tex = preload("res://scripts/textures.gd")
+const VsavModele = preload("res://scripts/vsav_modele.gd")
 
 signal arrive
 
@@ -20,6 +21,11 @@ var eau := 0.0
 var eau_max := 0.0
 var longueur := 6.5
 var largeur := 2.4
+
+var portes: Dictionary = {}     # VSAV : portes qui s'ouvrent (voir vsav_modele.gd)
+var camera_cabine: Camera3D = null
+var camera_cellule: Camera3D = null
+var _cam_index := 0
 
 var _gyros: Array = []
 var _mats_gyro: Array = []
@@ -39,6 +45,11 @@ func construire(p_code: String) -> void:
 		eau_max = 3000.0
 	else:
 		nom_complet = "Véhicule de secours et d'assistance aux victimes"
+		longueur = 5.9
+		largeur = 2.1
+		portes = VsavModele.construire(self)
+		_cameras()
+		return
 	var rouge: Material = Tex.carrosserie(Color(0.72, 0.03, 0.03))
 	var blanc: Material = Tex.carrosserie(Color(0.95, 0.95, 0.95))
 	var noir: Material = Tex.carrosserie(Color(0.06, 0.06, 0.07))
@@ -130,6 +141,10 @@ func construire(p_code: String) -> void:
 	var avant_txt: Label3D = Geo.texte(self, "SAPEURS-POMPIERS", Vector3(0, h_cab - 0.95, -longueur * 0.5 - 0.05), 36, Color.WHITE, false)
 	avant_txt.rotation.y = PI
 	avant_txt.outline_size = 0
+	_cameras()
+
+
+func _cameras() -> void:
 	# Caméra de poursuite (utilisée pendant les trajets)
 	camera = Camera3D.new()
 	camera.position = Vector3(0, 4.3, longueur * 0.5 + 8.0)
@@ -139,9 +154,101 @@ func construire(p_code: String) -> void:
 	_son = Son.new()
 	_son.position = Vector3(0, 2, 0)
 	add_child(_son)
+	if code == "VSAV":
+		# Vue depuis la place passager, et vue depuis la cellule (siège près de la porte arrière)
+		camera_cabine = Camera3D.new()
+		camera_cabine.position = Vector3(0.55, 1.78, -1.2)
+		camera_cabine.rotation_degrees = Vector3(-6, 8, 0)
+		camera_cabine.fov = 80.0
+		camera_cabine.far = 1500.0
+		camera_cabine.near = 0.03
+		add_child(camera_cabine)
+		camera_cellule = Camera3D.new()
+		camera_cellule.position = Vector3(0.72, 2.05, 2.45)
+		camera_cellule.rotation_degrees = Vector3(-22, 22, 0)
+		camera_cellule.fov = 85.0
+		camera_cellule.near = 0.03
+		add_child(camera_cellule)
+
+
+## Change de point de vue pendant un trajet : poursuite, cabine, cellule. Renvoie le nom de la vue.
+func changer_camera() -> String:
+	var cams: Array = [camera]
+	if camera_cabine != null:
+		cams.append(camera_cabine)
+		cams.append(camera_cellule)
+	_cam_index = (_cam_index + 1) % cams.size()
+	cams[_cam_index].current = true
+	return ["vue de poursuite", "vue depuis la cabine", "vue depuis la cellule"][_cam_index]
+
+
+func vue(index: int) -> void:
+	var cams: Array = [camera, camera_cabine, camera_cellule]
+	if index >= cams.size() or cams[index] == null:
+		index = 0
+	_cam_index = index
+	cams[index].current = true
+
+
+# ---------------------------------------------------------------------------
+# Portes (VSAV)
+# ---------------------------------------------------------------------------
+
+func basculer_porte(nom: String) -> void:
+	if portes.has(nom):
+		portes[nom]["ouvert"] = not portes[nom]["ouvert"]
+
+
+func ouvrir_porte(nom: String, v: bool = true) -> void:
+	if portes.has(nom):
+		portes[nom]["ouvert"] = v
+
+
+func fermer_portes() -> void:
+	for nom in portes:
+		portes[nom]["ouvert"] = false
+
+
+func porte_ouverte(nom: String) -> bool:
+	return portes.has(nom) and portes[nom]["t"] > 0.6
+
+
+func victime_a_bord(v: bool) -> void:
+	var p := get_node_or_null("PatientABord")
+	if p != null:
+		p.visible = v
+
+
+## Le joueur (position dans le monde) est-il dans la cellule ?
+func dans_cellule(pos: Vector3) -> bool:
+	if portes.is_empty():
+		return false
+	var l := to_local(pos)
+	return absf(l.x) < 1.0 and l.z > VsavModele.Z_CLOISON and l.z < VsavModele.Z_AR and l.y > 0.4
+
+
+func _animer_portes(delta: float) -> void:
+	for nom in portes:
+		var p: Dictionary = portes[nom]
+		var cible := 1.0 if p["ouvert"] else 0.0
+		if is_equal_approx(float(p["t"]), cible):
+			continue
+		p["t"] = move_toward(float(p["t"]), cible, delta * 1.4)
+		var k: float = smoothstep(0.0, 1.0, float(p["t"]))
+		var n: Node3D = p["noeud"]
+		if p["type"] == "pivot":
+			n.rotation.y = lerpf(float(p["ferme"]), float(p["ouvre"]), k)
+		else:
+			# Porte coulissante : elle sort un peu, puis glisse vers l'arrière
+			var a: Vector3 = p["ferme"]
+			var b: Vector3 = p["ouvre"]
+			var sortie := clampf(k * 5.0, 0.0, 1.0)
+			var glisse := clampf((k - 0.15) / 0.85, 0.0, 1.0)
+			n.position = Vector3(lerpf(a.x, b.x, sortie), a.y, lerpf(a.z, b.z, glisse))
 
 
 func partir(points: Array, avec_sirene: bool) -> void:
+	fermer_portes()
 	chemin = points.duplicate()
 	en_route = chemin.size() > 0
 	set_sirene(avec_sirene)
@@ -175,6 +282,7 @@ func droite() -> Vector3:
 
 func _physics_process(delta: float) -> void:
 	_t += delta
+	_animer_portes(delta)
 	if sirene:
 		var phase := fmod(_t * 3.0, 1.0)
 		if _gyros.size() == 2:

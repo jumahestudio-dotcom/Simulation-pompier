@@ -6,6 +6,7 @@ const Geo = preload("res://scripts/geo.gd")
 const Tex = preload("res://scripts/textures.gd")
 const Lot = preload("res://scripts/lot.gd")
 const Details = preload("res://scripts/details.gd")
+const Nature = preload("res://scripts/nature.gd")
 
 const COULEURS_VOITURES: Array = [Color(0.15, 0.2, 0.4), Color(0.6, 0.6, 0.62), Color(0.08, 0.08, 0.1), Color(0.5, 0.1, 0.1), Color(0.85, 0.85, 0.85), Color(0.3, 0.35, 0.3), Color(0.75, 0.7, 0.6)]
 
@@ -21,6 +22,7 @@ static func construire(racine: Node3D) -> void:
 	_rive_sud(racine, rng)
 	_campagne(racine, rng)
 	_panneaux(racine)
+	Nature.construire(racine)
 
 
 # ---------------------------------------------------------------------------

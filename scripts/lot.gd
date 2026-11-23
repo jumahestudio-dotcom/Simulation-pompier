@@ -102,7 +102,33 @@ static func toit(largeur: float, hauteur: float, longueur: float, pied: Vector3,
 static func _gabarit(nom: String) -> Array:
 	if not _gabarits.has(nom):
 		var m: PrimitiveMesh
-		if nom == "cyl":
+		if nom == "cyl_lo":
+			var c3 := CylinderMesh.new()
+			c3.top_radius = 1.0
+			c3.bottom_radius = 1.0
+			c3.height = 1.0
+			c3.radial_segments = 5
+			c3.rings = 1
+			c3.cap_top = false
+			c3.cap_bottom = false
+			m = c3
+		elif nom == "cone_lo":
+			var c4 := CylinderMesh.new()
+			c4.top_radius = 0.0
+			c4.bottom_radius = 1.0
+			c4.height = 1.0
+			c4.radial_segments = 7
+			c4.rings = 1
+			c4.cap_top = false
+			m = c4
+		elif nom == "sph_lo":
+			var s2 := SphereMesh.new()
+			s2.radius = 1.0
+			s2.height = 2.0
+			s2.radial_segments = 7
+			s2.rings = 4
+			m = s2
+		elif nom == "cyl":
 			var c := CylinderMesh.new()
 			c.top_radius = 1.0
 			c.bottom_radius = 1.0
@@ -154,6 +180,18 @@ static func cylindre(rayon: float, hauteur: float, centre: Vector3, m: Material,
 
 static func cone(rayon: float, hauteur: float, centre: Vector3, m: Material) -> void:
 	_forme("cone", Vector3(rayon, hauteur, rayon), centre, m, Basis.IDENTITY)
+
+
+## Versions simplifiées pour les forêts (beaucoup d'arbres, vus de loin).
+static func arbre_feuillu(pos: Vector3, taille: float, feuillage: Material, tronc: Material) -> void:
+	_forme("cyl_lo", Vector3(0.25 * taille, 4.0 * taille, 0.25 * taille), pos + Vector3(0, 2.0 * taille, 0), tronc, Basis.IDENTITY)
+	_forme("sph_lo", Vector3(2.6, 2.3, 2.6) * taille, pos + Vector3(0, 5.6 * taille, 0), feuillage, Basis.IDENTITY)
+
+
+static func arbre_conifere(pos: Vector3, taille: float, feuillage: Material, tronc: Material) -> void:
+	_forme("cyl_lo", Vector3(0.2 * taille, 2.0 * taille, 0.2 * taille), pos + Vector3(0, 1.0 * taille, 0), tronc, Basis.IDENTITY)
+	_forme("cone_lo", Vector3(2.0, 7.0, 2.0) * taille, pos + Vector3(0, 5.0 * taille, 0), feuillage, Basis.IDENTITY)
+	_forme("cone_lo", Vector3(1.5, 4.5, 1.5) * taille, pos + Vector3(0, 8.0 * taille, 0), feuillage, Basis.IDENTITY)
 
 
 static func sphere(rayon: float, centre: Vector3, m: Material, aplati: float = 1.0) -> void:

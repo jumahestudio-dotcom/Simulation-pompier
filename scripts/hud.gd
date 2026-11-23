@@ -78,7 +78,7 @@ func _ready() -> void:
 	_aide.add_theme_color_override("font_color", Color(1, 1, 1, 0.75))
 	_aide.add_theme_color_override("font_outline_color", Color.BLACK)
 	_aide.add_theme_constant_override("outline_size", 4)
-	_aide.text = "Z Q S D (ou W A S D) : marcher · Maj : courir · Souris : regarder\nE : interagir · Clic gauche : arroser (lance en main)\n1 à 7 : gestes de secours près d'une victime\nT (maintenu) : accélérer un trajet · N : appel suivant tout de suite\nF2 : tirage équilibré / réaliste · Échap : libérer la souris"
+	_aide.text = "Z Q S D (ou W A S D) : marcher · Maj : courir · Souris : regarder\nE : interagir · Clic gauche : arroser (lance en main)\n1 à 7 : gestes de secours près d'une victime\nT (maintenu) : accélérer un trajet · C : changer de vue en route · N : appel suivant\nF2 : tirage équilibré / réaliste · Échap : libérer la souris"
 	_aide.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	racine.add_child(_aide)
 
