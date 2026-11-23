@@ -3,6 +3,7 @@
 extends Node3D
 
 const Geo = preload("res://scripts/geo.gd")
+const VoitureModele = preload("res://scripts/voiture_modele.gd")
 
 var sens := 1.0          # +1 vers l'est (ou le sud sur un axe nord-sud), -1 dans l'autre sens
 var vitesse := 11.0
@@ -21,13 +22,8 @@ var _a := 0.0       # position le long de la route
 
 
 func construire(couleur: Color) -> void:
-	Geo.boite(self, Vector3(1.8, 0.8, 4.2), Vector3(0, 0.6, 0), couleur, false)
-	Geo.boite(self, Vector3(1.6, 0.6, 2.2), Vector3(0, 1.3, 0.2), couleur.darkened(0.2), false)
-	Geo.boite(self, Vector3(1.5, 0.45, 0.05), Vector3(0, 1.3, -0.92), Color(0.2, 0.3, 0.4), false)
-	for zz in [-1.3, 1.3]:
-		for xx in [-0.9, 0.9]:
-			var r: MeshInstance3D = Geo.cylindre(self, 0.33, 0.25, Vector3(xx, 0.33, zz), Color(0.05, 0.05, 0.05))
-			r.rotation.z = PI * 0.5
+	var types: Array = VoitureModele.TYPES
+	VoitureModele.instancier(self, types[absi(hash(couleur) + get_instance_id()) % types.size()], couleur)
 	_orienter()
 
 

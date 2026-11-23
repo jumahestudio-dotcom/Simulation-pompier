@@ -502,11 +502,13 @@ func animer(vitesse: float, delta: float) -> void:
 		var phase: float = _pas + (0.0 if i == 0 else PI)
 		var si: float = sin(phase)
 		var ci: float = cos(phase)
-		_hanches[i].rotation.x = si * 0.42 * amp
-		# Le genou plie pendant que la jambe revient vers l'avant
-		_genoux[i].rotation.x = -(maxf(0.0, ci) * (0.75 if not course else 1.25) + 0.05) * amp
-		_epaules[i].rotation.x = -si * 0.35 * amp
-		_coudes[i].rotation.x = 0.15 + (0.25 + maxf(0.0, -si) * 0.3) * amp + (0.9 if course else 0.0) * amp
+		_hanches[i].rotation.x = si * 0.5 * amp
+		# Le genou plie franchement quand la jambe revient vers l'avant (jusqu'à ~65°),
+		# et reste un peu fléchi pendant l'appui
+		_genoux[i].rotation.x = -(maxf(0.0, ci) * (1.1 if not course else 1.5) + 0.12) * amp
+		# Les bras balancent en opposition, coude plié (plus encore en courant)
+		_epaules[i].rotation.x = -si * 0.45 * amp
+		_coudes[i].rotation.x = 0.2 + (0.35 + maxf(0.0, -si) * 0.45) * amp + (0.8 if course else 0.0) * amp
 	# Le bassin monte et descend, le buste tourne un peu, la tête reste stable
 	_bassin.position.y = 0.93 + absf(cos(_pas)) * 0.025 * amp - 0.012 * amp
 	_bassin.rotation.y = s * 0.07 * amp

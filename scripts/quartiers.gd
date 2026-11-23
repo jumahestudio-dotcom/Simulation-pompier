@@ -5,6 +5,7 @@ extends RefCounted
 const Geo = preload("res://scripts/geo.gd")
 const Tex = preload("res://scripts/textures.gd")
 const Lot = preload("res://scripts/lot.gd")
+const VoitureModele = preload("res://scripts/voiture_modele.gd")
 const Details = preload("res://scripts/details.gd")
 const Nature = preload("res://scripts/nature.gd")
 
@@ -30,17 +31,10 @@ static func construire(racine: Node3D) -> void:
 # ---------------------------------------------------------------------------
 
 static func _voiture(racine: Node3D, pos: Vector3, c: Color, angle: float = 0.0) -> void:
-	var b := Basis(Vector3.UP, angle)
-	var carro: Material = Tex.carrosserie(c)
-	Lot.boite(Vector3(1.8, 0.7, 4.2), pos + b * Vector3(0, 0.6, 0), carro, b)
-	Lot.boite(Vector3(1.6, 0.55, 2.2), pos + b * Vector3(0, 1.22, 0.2), carro, b)
-	Lot.boite(Vector3(1.62, 0.42, 2.0), pos + b * Vector3(0, 1.22, 0.2), Tex.vitre(), b)
-	Lot.boite(Vector3(1.4, 0.15, 0.05), pos + b * Vector3(0, 0.62, -2.11), Lot.couleur(Color(0.95, 0.95, 0.9)), b)
-	Lot.boite(Vector3(1.5, 0.12, 0.05), pos + b * Vector3(0, 0.75, 2.11), Lot.couleur(Color(0.7, 0.08, 0.08)), b)
-	var roue := Basis(Vector3.FORWARD, PI * 0.5)
-	for zz in [-1.3, 1.3]:
-		for xx in [-0.9, 0.9]:
-			Lot.cylindre(0.33, 0.25, pos + b * Vector3(xx, 0.33, zz), Lot.couleur(Color(0.05, 0.05, 0.05)), b * roue)
+	# Le modèle dépend de la position (toujours le même au même endroit)
+	var types: Array = VoitureModele.TYPES
+	var t: String = types[absi(int(pos.x * 7.0 + pos.z * 13.0)) % types.size()]
+	VoitureModele.garer(Lot, t, c, pos, Basis(Vector3.UP, angle))
 
 
 static func _arbre(racine: Node3D, pos: Vector3, rng: RandomNumberGenerator, taille: float = 1.0) -> void:

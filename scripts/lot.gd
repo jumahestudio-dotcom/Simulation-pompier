@@ -198,6 +198,23 @@ static func sphere(rayon: float, centre: Vector3, m: Material, aplati: float = 1
 	_forme("sph", Vector3(rayon, rayon * aplati, rayon), centre, m, Basis.IDENTITY)
 
 
+## Copie un maillage déjà fait (première surface), déplacé et orienté.
+static func maillage(arr: Array, centre: Vector3, base: Basis, mat: Material) -> void:
+	var p := _paquet(mat, centre)
+	var st: SurfaceTool = p["st"]
+	var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+	var ns: PackedVector3Array = arr[Mesh.ARRAY_NORMAL]
+	var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX]
+	var n0: int = p["n"]
+	for k in vs.size():
+		st.set_normal(base * ns[k])
+		st.set_uv(Vector2.ZERO)
+		st.add_vertex(centre + base * vs[k])
+	for k in idx.size():
+		st.add_index(n0 + idx[k])
+	p["n"] = n0 + vs.size()
+
+
 ## Construit les maillages et les ajoute à la scène.
 static func finir(racine: Node3D) -> void:
 	for cle in _paquets:

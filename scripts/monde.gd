@@ -8,6 +8,7 @@ const Tex = preload("res://scripts/textures.gd")
 const Quartiers = preload("res://scripts/quartiers.gd")
 const Details = preload("res://scripts/details.gd")
 const Lot = preload("res://scripts/lot.gd")
+const VoitureModele = preload("res://scripts/voiture_modele.gd")
 
 const TUFFEAU: Array = [Color(0.95, 0.91, 0.80), Color(0.90, 0.86, 0.75), Color(1.0, 0.97, 0.88), Color(0.86, 0.81, 0.70)]
 const ARDOISE := Color(0.27, 0.30, 0.35)
@@ -246,14 +247,18 @@ static func _voitures_garees(racine: Node3D, rng: RandomNumberGenerator) -> void
 
 
 static func _voiture(racine: Node3D, pos: Vector3, c: Color) -> void:
-	var carro: Material = Tex.carrosserie(c)
-	Geo.boite_mat(racine, Vector3(1.8, 0.7, 4.2), pos + Vector3(0, 0.6, 0), carro)
-	Geo.boite_mat(racine, Vector3(1.6, 0.55, 2.2), pos + Vector3(0, 1.22, 0.2), carro, false)
-	Geo.boite_mat(racine, Vector3(1.62, 0.42, 2.0), pos + Vector3(0, 1.22, 0.2), Tex.vitre(), false)
-	for zz in [-1.3, 1.3]:
-		for xx in [-0.9, 0.9]:
-			var r: MeshInstance3D = Geo.cylindre(racine, 0.33, 0.25, pos + Vector3(xx, 0.33, zz), Color(0.05, 0.05, 0.05))
-			r.rotation.z = PI * 0.5
+	var types: Array = VoitureModele.TYPES
+	var t: String = types[absi(int(pos.x * 7.0 + pos.z * 13.0)) % types.size()]
+	VoitureModele.garer(Lot, t, c, pos, Basis.IDENTITY if int(pos.z) % 2 == 0 else Basis(Vector3.UP, PI))
+	# On ne traverse pas les voitures garées
+	var corps := StaticBody3D.new()
+	corps.position = pos + Vector3(0, 0.75, 0)
+	racine.add_child(corps)
+	var cs := CollisionShape3D.new()
+	var forme := BoxShape3D.new()
+	forme.size = Vector3(1.8, 1.3, 4.3)
+	cs.shape = forme
+	corps.add_child(cs)
 
 
 static func _caserne(racine: Node3D) -> void:
