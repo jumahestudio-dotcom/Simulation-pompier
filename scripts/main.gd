@@ -9,6 +9,7 @@ const Monde = preload("res://scripts/monde.gd")
 const Joueur = preload("res://scripts/joueur.gd")
 const Engin = preload("res://scripts/engin.gd")
 const Trafic = preload("res://scripts/trafic.gd")
+const Pieton = preload("res://scripts/pieton.gd")
 const Victime = preload("res://scripts/victime.gd")
 const Feu = preload("res://scripts/feu.gd")
 const Hud = preload("res://scripts/hud.gd")
@@ -126,6 +127,7 @@ func _ready() -> void:
 		v.construire(couleurs[(i + 3) % couleurs.size()])
 		v.placer(-580.0 + i * 120.0)
 		voitures.append(v)
+	_creer_pietons()
 	_creer_collegues()
 	hud = Hud.new()
 	add_child(hud)
@@ -1151,3 +1153,30 @@ func _reprendre_garde() -> void:
 	mission = {}
 	prochain_appel = randf_range(30.0, 60.0)
 	hud.radio("Adjudant Girard (chef de garde)", "Engins reconditionnés. Prochain départ quand ça sonnera.", "#ffd27f")
+
+
+## Des passants sur les trottoirs du centre et du lotissement.
+func _creer_pietons() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 18
+	var segments: Array = [
+		[Vector3(-195, 0, -11.2), Vector3(-55, 0, -11.2)], [Vector3(-45, 0, -11.2), Vector3(95, 0, -11.2)],
+		[Vector3(105, 0, -11.2), Vector3(245, 0, -11.2)], [Vector3(255, 0, -11.2), Vector3(318, 0, -11.2)],
+		[Vector3(-318, 0, 11.2), Vector3(-205, 0, 11.2)], [Vector3(-195, 0, 11.2), Vector3(-55, 0, 11.2)],
+		[Vector3(-45, 0, 11.2), Vector3(95, 0, 11.2)], [Vector3(105, 0, 11.2), Vector3(135, 0, 11.2)],
+		[Vector3(185, 0, 11.2), Vector3(245, 0, 11.2)],
+		[Vector3(-192.8, 0, -140), Vector3(-192.8, 0, -16)], [Vector3(-57.2, 0, 16), Vector3(-57.2, 0, 110)],
+		[Vector3(107.2, 0, -140), Vector3(107.2, 0, -16)], [Vector3(92.8, 0, 16), Vector3(92.8, 0, 110)],
+		[Vector3(242.8, 0, -140), Vector3(242.8, 0, -16)],
+		[Vector3(-35, 0, -229.3), Vector3(240, 0, -229.3)], [Vector3(260, 0, -360.7), Vector3(440, 0, -360.7)],
+	]
+	for seg in segments:
+		var nb := 2 + rng.randi() % 3
+		for k in nb:
+			var p = Pieton.new()
+			p.depart = seg[0]
+			p.arrivee = seg[1]
+			p.monde = self
+			add_child(p)
+			p.construire(rng)
+

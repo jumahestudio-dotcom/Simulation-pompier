@@ -6,6 +6,8 @@ const Geo = preload("res://scripts/geo.gd")
 const Carte = preload("res://scripts/carte.gd")
 const Tex = preload("res://scripts/textures.gd")
 const Quartiers = preload("res://scripts/quartiers.gd")
+const Details = preload("res://scripts/details.gd")
+const Lot = preload("res://scripts/lot.gd")
 
 const TUFFEAU: Array = [Color(0.95, 0.91, 0.80), Color(0.90, 0.86, 0.75), Color(1.0, 0.97, 0.88), Color(0.86, 0.81, 0.70)]
 const ARDOISE := Color(0.27, 0.30, 0.35)
@@ -87,6 +89,7 @@ static func construire(racine: Node3D) -> void:
 	for bx in blocs_x:
 		for bz in [[-145.0, -8.0], [8.0, 115.0]]:
 			_coeur_ilot(racine, rng, Rect2(bx[0] + 26.0, bz[0] + 26.0, bx[1] - bx[0] - 52.0, bz[1] - bz[0] - 52.0))
+	Details.mobilier_centre(racine, rng)
 	_voitures_garees(racine, rng)
 	Quartiers.construire(racine)
 	_caserne(racine)
@@ -97,6 +100,8 @@ static func construire(racine: Node3D) -> void:
 	Geo.texte(racine, Carte.NOM_BOULEVARD, Vector3(40, 4, -9), 56, Color(0.8, 0.9, 1.0))
 	Geo.texte(racine, Carte.NOM_RUE_EST, Vector3(244, 4, -40), 56, Color(0.8, 0.9, 1.0))
 	Geo.texte(racine, Carte.NOM_RUE_OUEST, Vector3(-56, 4, -40), 56, Color(0.8, 0.9, 1.0))
+	# Tous les petits détails regroupés en quelques gros maillages
+	Lot.finir(racine)
 
 
 ## Une rangée d'immeubles qui donne sur une rue. "bord" : z du bord de la chaussée.
@@ -123,6 +128,8 @@ static func _rangee(racine: Node3D, rng: RandomNumberGenerator, x0: float, x1: f
 			# Corniche et toit d'ardoise à deux pans
 			Geo.boite(racine, Vector3(largeur - 0.1, 0.35, profondeur + 0.3), Vector3(x + largeur * 0.5, hauteur_et + 0.17, cz), Color(0.9, 0.88, 0.82), false)
 			Geo.toit(racine, largeur - 0.2, profondeur + 0.4, rng.randf_range(3.0, 4.5), Vector3(x + largeur * 0.5, hauteur_et + 0.35, cz), Tex.mat_ardoise(), true)
+			var commerce := rng.randf() < (0.7 if absf(bord) < 10.0 else 0.3)
+			Details.immeuble_centre(racine, rng, Vector3(x + largeur * 0.5, 0, z_facade), Vector3(0, 0, -sens), largeur, hauteur_et, profondeur, commerce)
 			# Cheminée
 			if rng.randf() < 0.6:
 				Geo.boite(racine, Vector3(0.7, 2.6, 0.9), Vector3(x + rng.randf_range(1.5, largeur - 1.5), hauteur_et + 2.0, cz + rng.randf_range(-1.5, 1.5)), Color(0.75, 0.68, 0.6), false)
@@ -151,6 +158,7 @@ static func _rangee_z(racine: Node3D, rng: RandomNumberGenerator, z0: float, z1:
 			Geo.boite_mat(racine, Vector3(profondeur, hauteur_et, largeur - 0.4), Vector3(cx, hauteur_et * 0.5, cz), Tex.mat_facade(c))
 			Geo.boite(racine, Vector3(profondeur + 0.3, 0.35, largeur - 0.1), Vector3(cx, hauteur_et + 0.17, cz), Color(0.9, 0.88, 0.82), false)
 			Geo.toit(racine, profondeur + 0.4, largeur - 0.2, rng.randf_range(3.0, 4.5), Vector3(cx, hauteur_et + 0.35, cz), Tex.mat_ardoise(), false)
+			Details.immeuble_centre(racine, rng, Vector3(x_facade, 0, cz), Vector3(-sens, 0, 0), largeur, hauteur_et, profondeur, rng.randf() < 0.3)
 			if rng.randf() < 0.6:
 				Geo.boite(racine, Vector3(0.9, 2.6, 0.7), Vector3(cx + rng.randf_range(-1.5, 1.5), hauteur_et + 2.0, z + rng.randf_range(1.5, largeur - 1.5)), Color(0.75, 0.68, 0.6), false)
 		z += largeur + rng.randf_range(0.0, 1.5)
@@ -160,6 +168,8 @@ static func _rangee_z(racine: Node3D, rng: RandomNumberGenerator, z0: float, z1:
 static func _coeur_ilot(racine: Node3D, rng: RandomNumberGenerator, r: Rect2) -> void:
 	for res in RESERVES:
 		var rr: Rect2 = res
+		if r.size.x < 20.0:
+			return
 		if rr.grow(4.0).intersects(r):
 			# On laisse de la place au bâtiment réservé (caserne, immeuble du feu…)
 			if rr.get_center().x < r.get_center().x:

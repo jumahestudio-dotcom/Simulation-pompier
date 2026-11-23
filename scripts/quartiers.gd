@@ -4,6 +4,8 @@ extends RefCounted
 
 const Geo = preload("res://scripts/geo.gd")
 const Tex = preload("res://scripts/textures.gd")
+const Lot = preload("res://scripts/lot.gd")
+const Details = preload("res://scripts/details.gd")
 
 const COULEURS_VOITURES: Array = [Color(0.15, 0.2, 0.4), Color(0.6, 0.6, 0.62), Color(0.08, 0.08, 0.1), Color(0.5, 0.1, 0.1), Color(0.85, 0.85, 0.85), Color(0.3, 0.35, 0.3), Color(0.75, 0.7, 0.6)]
 
@@ -26,25 +28,25 @@ static func construire(racine: Node3D) -> void:
 # ---------------------------------------------------------------------------
 
 static func _voiture(racine: Node3D, pos: Vector3, c: Color, angle: float = 0.0) -> void:
-	var n := Node3D.new()
-	n.position = pos
-	n.rotation.y = angle
-	racine.add_child(n)
+	var b := Basis(Vector3.UP, angle)
 	var carro: Material = Tex.carrosserie(c)
-	Geo.boite_mat(n, Vector3(1.8, 0.7, 4.2), Vector3(0, 0.6, 0), carro, false)
-	Geo.boite_mat(n, Vector3(1.6, 0.55, 2.2), Vector3(0, 1.22, 0.2), carro, false)
-	Geo.boite_mat(n, Vector3(1.62, 0.42, 2.0), Vector3(0, 1.22, 0.2), Tex.vitre(), false)
+	Lot.boite(Vector3(1.8, 0.7, 4.2), pos + b * Vector3(0, 0.6, 0), carro, b)
+	Lot.boite(Vector3(1.6, 0.55, 2.2), pos + b * Vector3(0, 1.22, 0.2), carro, b)
+	Lot.boite(Vector3(1.62, 0.42, 2.0), pos + b * Vector3(0, 1.22, 0.2), Tex.vitre(), b)
+	Lot.boite(Vector3(1.4, 0.15, 0.05), pos + b * Vector3(0, 0.62, -2.11), Lot.couleur(Color(0.95, 0.95, 0.9)), b)
+	Lot.boite(Vector3(1.5, 0.12, 0.05), pos + b * Vector3(0, 0.75, 2.11), Lot.couleur(Color(0.7, 0.08, 0.08)), b)
+	var roue := Basis(Vector3.FORWARD, PI * 0.5)
 	for zz in [-1.3, 1.3]:
 		for xx in [-0.9, 0.9]:
-			var r: MeshInstance3D = Geo.cylindre(n, 0.33, 0.25, Vector3(xx, 0.33, zz), Color(0.05, 0.05, 0.05))
-			r.rotation.z = PI * 0.5
+			Lot.cylindre(0.33, 0.25, pos + b * Vector3(xx, 0.33, zz), Lot.couleur(Color(0.05, 0.05, 0.05)), b * roue)
 
 
 static func _arbre(racine: Node3D, pos: Vector3, rng: RandomNumberGenerator, taille: float = 1.0) -> void:
-	Geo.cylindre(racine, 0.22 * taille, 4.0 * taille, pos + Vector3(0, 2.0 * taille, 0), Color(0.5, 0.42, 0.33))
-	var f := Color(0.22, 0.36, 0.16).lerp(Color(0.38, 0.5, 0.22), rng.randf())
-	Geo.sphere(racine, 2.2 * taille, pos + Vector3(0, 5.0 * taille, 0), f)
-	Geo.sphere(racine, 1.6 * taille, pos + Vector3(1.0, 5.8, 0.5) * taille, f.lightened(0.07))
+	Lot.cylindre(0.22 * taille, 4.0 * taille, pos + Vector3(0, 2.0 * taille, 0), Lot.couleur(Color(0.5, 0.42, 0.33)))
+	var f := Color(0.22, 0.36, 0.16).lerp(Color(0.38, 0.5, 0.22), float(rng.randi() % 4) / 3.0)
+	Lot.sphere(2.2 * taille, pos + Vector3(0, 5.0 * taille, 0), Lot.couleur(f))
+	Lot.sphere(1.6 * taille, pos + Vector3(1.0, 5.8, 0.5) * taille, Lot.couleur(f.lightened(0.07)))
+	Lot.sphere(1.5 * taille, pos + Vector3(-0.9, 5.4, -0.6) * taille, Lot.couleur(f.darkened(0.07)))
 
 
 static func _parking(racine: Node3D, r: Rect2, rng: RandomNumberGenerator, remplissage: float) -> void:
@@ -65,9 +67,45 @@ static func _tour(racine: Node3D, centre: Vector3, l: float, p: float, h: float,
 	Geo.boite_mat(racine, Vector3(l, h, p), centre + Vector3(0, h * 0.5, 0), Tex.plaque("hlm", Tex.facade_hlm(), 3.0, 3.0, teinte))
 	Geo.boite(racine, Vector3(l + 0.4, 0.6, p + 0.4), centre + Vector3(0, h + 0.3, 0), Color(0.62, 0.62, 0.6), false)
 	Geo.boite(racine, Vector3(4, 3, 4), centre + Vector3(0, h + 1.8, 0), Color(0.75, 0.75, 0.72), false)
-	# Hall d'entrée vitré sur les deux grandes faces
+	# Hall d'entrée vitré sur les deux grandes faces, avec auvent et interphone
 	for cote in [-1.0, 1.0]:
-		Geo.boite_mat(racine, Vector3(4, 2.6, 0.2), centre + Vector3(0, 1.3, cote * (p * 0.5 + 0.05)), Tex.vitre(), false)
+		Lot.boite(Vector3(4, 2.6, 0.2), centre + Vector3(0, 1.3, cote * (p * 0.5 + 0.05)), Tex.vitre())
+		Lot.boite_c(Vector3(5.0, 0.25, 2.2), centre + Vector3(0, 2.9, cote * (p * 0.5 + 1.1)), Color(0.55, 0.55, 0.55))
+		Lot.boite_c(Vector3(0.3, 0.45, 0.1), centre + Vector3(2.4, 1.3, cote * (p * 0.5 + 0.08)), Color(0.6, 0.62, 0.65))
+	# Soubassement plus sombre au rez-de-chaussée
+	Lot.boite_c(Vector3(l + 0.1, 0.9, p + 0.1), centre + Vector3(0, 0.45, 0), Color(0.55, 0.55, 0.53))
+	# Loggias et balcons sur chaque face, garde-corps à panneaux de couleur
+	var accent: Color = [Color(0.8, 0.45, 0.25), Color(0.3, 0.5, 0.7), Color(0.55, 0.65, 0.3), Color(0.75, 0.6, 0.25)][int(absf(centre.x + centre.z)) % 4]
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(absf(centre.x * 7.0 + centre.z * 13.0))
+	var faces := [[Vector3(0, 0, 1), l, p], [Vector3(0, 0, -1), l, p], [Vector3(1, 0, 0), p, l], [Vector3(-1, 0, 0), p, l]]
+	for f in faces:
+		var n: Vector3 = f[0]
+		var largeur: float = f[1]
+		var prof: float = f[2]
+		var t := Vector3.UP.cross(n)
+		var b := Basis(t, Vector3.UP, n)
+		var nb_baies := int(largeur / 6.0)
+		if nb_baies < 1:
+			continue
+		var etages := int(h / 3.0)
+		for k in nb_baies:
+			if k % 2 == 1 and largeur < 20.0:
+				continue
+			var a: float = -largeur * 0.5 + (k + 0.5) * largeur / nb_baies
+			for e in range(1, etages):
+				var pos: Vector3 = centre + t * a + n * (prof * 0.5 + 0.6) + Vector3(0, e * 3.0, 0)
+				Lot.boite(Vector3(3.6, 0.18, 1.2), pos, Lot.couleur(Color(0.82, 0.82, 0.8)), b)
+				Lot.boite(Vector3(3.6, 1.0, 0.08), pos + n * 0.58 + Vector3(0, 0.55, 0), Lot.couleur(accent if e % 2 == 0 else Color(0.9, 0.9, 0.88)), b)
+				if rng.randf() < 0.18:
+					Lot.sphere(0.4, pos + n * 0.4 + t * 1.3 + Vector3(0, 1.4, 0), Lot.couleur(Color(0.85, 0.85, 0.85)), 0.35)
+				elif rng.randf() < 0.15:
+					Lot.boite_c(Vector3(1.0, 0.8, 0.5), pos + n * 0.2 - t * 1.2 + Vector3(0, 0.5, 0), Color(0.3, 0.45, 0.25))
+	# Garde-corps et antennes sur le toit
+	Lot.boite_c(Vector3(l, 1.0, 0.1), centre + Vector3(0, h + 1.1, p * 0.5), Color(0.6, 0.6, 0.6))
+	Lot.boite_c(Vector3(l, 1.0, 0.1), centre + Vector3(0, h + 1.1, -p * 0.5), Color(0.6, 0.6, 0.6))
+	for k in 3:
+		Lot.cylindre(0.05, 3.0, centre + Vector3(-l * 0.3 + k * l * 0.3, h + 2.1, -p * 0.3), Lot.couleur(Color(0.5, 0.5, 0.5)))
 
 
 static func _maison(racine: Node3D, avant: Vector3, face: float, rng: RandomNumberGenerator) -> void:
@@ -82,18 +120,19 @@ static func _maison(racine: Node3D, avant: Vector3, face: float, rng: RandomNumb
 	var toit_mat: Material = Tex.plaque("tuiles", Tex.tuiles(), 2.0, 2.0) if rng.randf() < 0.55 else Tex.mat_ardoise()
 	Geo.toit(racine, larg + 0.6, prof + 0.6, rng.randf_range(2.2, 3.4), centre + Vector3(0, h, 0), toit_mat, true)
 	# Porte d'entrée côté rue
-	Geo.boite(racine, Vector3(1.0, 2.1, 0.1), centre + Vector3(larg * 0.2, 1.05, face * (prof * 0.5 + 0.03)), Color(0.35, 0.25, 0.18), false)
+	Lot.boite_c(Vector3(1.0, 2.1, 0.1), centre + Vector3(larg * 0.2, 1.05, face * (prof * 0.5 + 0.03)), Color(0.35, 0.25, 0.18))
 	# Garage accolé
 	if rng.randf() < 0.6:
 		var gx: float = centre.x + (larg * 0.5 + 2.2) * (1.0 if rng.randf() < 0.5 else -1.0)
 		Geo.boite_mat(racine, Vector3(4.2, 2.7, 6.0), Vector3(gx, 1.35, centre.z + face * (prof * 0.5 - 3.0)), Tex.plaque("crepi_uni", Tex.beton(), 3.0, 3.0, teinte))
-		Geo.boite_mat(racine, Vector3(2.6, 2.1, 0.08), Vector3(gx, 1.05, centre.z + face * (prof * 0.5 + 0.02)), Tex.plaque("rideau", Tex.rideau(), 0.5, 0.5, Color(0.85, 0.85, 0.85)), false)
+		Lot.boite(Vector3(2.6, 2.1, 0.08), Vector3(gx, 1.05, centre.z + face * (prof * 0.5 + 0.02)), Tex.plaque("rideau", Tex.rideau(), 0.5, 0.5, Color(0.85, 0.85, 0.85)))
 		if rng.randf() < 0.6:
 			_voiture(racine, Vector3(gx, 0, avant.z - face * 3.2), COULEURS_VOITURES[rng.randi() % COULEURS_VOITURES.size()], 0.0)
 	# Haie ou muret le long de la rue, avec une ouverture
 	var haie := Color(0.18, 0.32, 0.14) if rng.randf() < 0.7 else Color(0.85, 0.83, 0.78)
-	Geo.boite(racine, Vector3(6.0, 1.1, 0.6), avant + Vector3(-4.5, 0.55, -face * 0.4), haie, false)
-	Geo.boite(racine, Vector3(4.0, 1.1, 0.6), avant + Vector3(5.5, 0.55, -face * 0.4), haie, false)
+	Lot.boite_c(Vector3(6.0, 1.1, 0.6), avant + Vector3(-4.5, 0.55, -face * 0.4), haie)
+	Lot.boite_c(Vector3(4.0, 1.1, 0.6), avant + Vector3(5.5, 0.55, -face * 0.4), haie)
+	Details.maison(rng, centre, face, larg, prof, h, etage, avant, haie)
 	if rng.randf() < 0.5:
 		_arbre(racine, centre + Vector3(rng.randf_range(-4, 4), 0, -face * (prof * 0.5 + 6.0)), rng, rng.randf_range(0.7, 1.0))
 
@@ -164,6 +203,17 @@ static func _pavillons_nord(racine: Node3D, rng: RandomNumberGenerator) -> void:
 		var x1: float = b[1]
 		for zl in [-225.0, -365.0]:
 			Geo.boite_mat(racine, Vector3(x1 - x0 + 10.0, 0.05, 7.0), Vector3((x0 + x1) * 0.5, 0.055, zl), asph, false)
+			# Trottoirs, réverbères et voitures garées le long de la rue de lotissement
+			for cote2 in [-1.0, 1.0]:
+				Lot.boite_c(Vector3(x1 - x0, 0.12, 1.6), Vector3((x0 + x1) * 0.5, 0.06, zl + cote2 * 4.3), Color(0.72, 0.71, 0.68))
+			var xr: float = x0 + 12.0
+			while xr < x1 - 5.0:
+				Details.lampadaire(Vector3(xr, 0, zl - 4.6), 0.0)
+				xr += 32.0
+			var xv: float = x0 + rng.randf_range(10.0, 30.0)
+			while xv < x1 - 8.0:
+				_voiture(racine, Vector3(xv, 0, zl + 2.3), COULEURS_VOITURES[rng.randi() % COULEURS_VOITURES.size()], PI * 0.5)
+				xv += rng.randf_range(25.0, 60.0)
 			for cote in [-1.0, 1.0]:
 				var x: float = x0 + 10.0
 				while x < x1 - 9.0:
@@ -213,6 +263,62 @@ static func _zone_activites(racine: Node3D, rng: RandomNumberGenerator) -> void:
 		Geo.cylindre(racine, 1.6, 7.5, Vector3(610, 3.75 + k * 7.5, 92), bande)
 	for k in 3:
 		Geo.cylindre(racine, 3.0, 8.0, Vector3(480 + k * 8.0, 4.0, 100), Color(0.85, 0.85, 0.82))
+	# Toitures techniques : centrales de traitement d'air, lanterneaux, édicules
+	for bat in [[Vector3(390, 0, -85), 90.0, 55.0, 12.0], [Vector3(555, 0, -100), 110.0, 60.0, 9.0], [Vector3(375, 0, 45), 50.0, 30.0, 7.0], [Vector3(525, 0, 60), 80.0, 40.0, 14.0], [Vector3(605, 0, 40), 40.0, 30.0, 10.0]]:
+		_toiture(bat[0], bat[1], bat[2], bat[3], rng)
+	# Clôture de l'usine avec portail, totems et éclairage des parkings
+	var grillage := Lot.couleur(Color(0.3, 0.42, 0.32))
+	Lot.boite(Vector3(100, 2.0, 0.08), Vector3(525, 1.0, 34), grillage)
+	Lot.boite(Vector3(100, 2.0, 0.08), Vector3(525, 1.0, 112), grillage)
+	Lot.boite(Vector3(0.08, 2.0, 78), Vector3(475, 1.0, 73), grillage)
+	Lot.boite(Vector3(0.08, 2.0, 78), Vector3(575, 1.0, 73), grillage)
+	Lot.boite_c(Vector3(0.6, 1.2, 0.6), Vector3(530, 0.6, 31), Color(0.85, 0.85, 0.8))
+	Lot.boite_c(Vector3(6, 0.15, 0.15), Vector3(534, 1.0, 31), Color(0.9, 0.15, 0.1))
+	for totem in [[Vector3(470, 0, -15), "HYPERMARCHÉ", Color(0.85, 0.2, 0.15)], [Vector3(340, 0, -15), "ZA DES ORMEAUX", Color(0.2, 0.35, 0.6)]]:
+		var tp: Vector3 = totem[0]
+		Lot.boite_c(Vector3(2.2, 7.0, 0.6), tp + Vector3(0, 3.5, 0), totem[2])
+		var tl := Geo.texte(racine, totem[1], tp + Vector3(0, 6.0, 0.32), 40, Color(1, 1, 1), false)
+		tl.basis = Basis(Vector3.FORWARD, PI * 0.5)
+	var xl := 480.0
+	while xl < 640.0:
+		Lot.cylindre(0.12, 9.0, Vector3(xl, 4.5, -46), Lot.couleur(Color(0.5, 0.52, 0.55)))
+		Lot.boite(Vector3(1.4, 0.2, 0.6), Vector3(xl, 9.0, -46), Lot.couleur(Color(1.0, 0.95, 0.8), 1.2))
+		# Chariots et caddies regroupés
+		Lot.boite_c(Vector3(2.5, 1.1, 1.0), Vector3(xl + 10, 0.55, -46), Color(0.7, 0.72, 0.75))
+		xl += 40.0
+	# Camions en attente sur la voirie interne
+	for k in 3:
+		_camion(Vector3(345 + k * 14.0, 0, -30), Basis(Vector3.UP, PI * 0.5))
+
+
+static func _toiture(c: Vector3, l: float, p: float, h: float, rng: RandomNumberGenerator) -> void:
+	var gris := Lot.couleur(Color(0.7, 0.72, 0.73))
+	# Acrotère
+	for cote in [-1.0, 1.0]:
+		Lot.boite(Vector3(l + 0.4, 0.8, 0.3), c + Vector3(0, h + 0.4, cote * p * 0.5), gris)
+		Lot.boite(Vector3(0.3, 0.8, p + 0.4), c + Vector3(cote * l * 0.5, h + 0.4, 0), gris)
+	# Lanterneaux (bandes vitrées)
+	var nb := int(l / 12.0)
+	for k in nb:
+		Lot.boite(Vector3(2.0, 0.6, p * 0.7), c + Vector3(-l * 0.5 + (k + 0.5) * l / nb, h + 0.3, 0), Tex.vitre())
+	# Centrales de traitement d'air et gaines
+	for k in int(l * p / 900.0) + 1:
+		var u := c + Vector3(rng.randf_range(-l * 0.4, l * 0.4), h, rng.randf_range(-p * 0.4, p * 0.4))
+		Lot.boite_c(Vector3(4.0, 1.8, 2.2), u + Vector3(0, 0.9, 0), Color(0.78, 0.8, 0.8))
+		Lot.cylindre(0.7, 0.3, u + Vector3(-1.0, 1.95, 0), Lot.couleur(Color(0.3, 0.3, 0.32)))
+		Lot.cylindre(0.7, 0.3, u + Vector3(1.0, 1.95, 0), Lot.couleur(Color(0.3, 0.3, 0.32)))
+		Lot.boite_c(Vector3(0.8, 0.8, 6.0), u + Vector3(0, 0.4, 4.0), Color(0.65, 0.67, 0.68))
+
+
+static func _camion(pos: Vector3, b: Basis) -> void:
+	Lot.boite_c(Vector3(2.5, 3.0, 2.4), pos + b * Vector3(0, 1.9, -5.5), Color(0.85, 0.85, 0.85), b)
+	Lot.boite(Vector3(2.3, 1.0, 0.05), pos + b * Vector3(0, 2.3, -6.72), Tex.vitre(), b)
+	Lot.boite_c(Vector3(2.5, 3.4, 9.5), pos + b * Vector3(0, 2.2, 0.8), Color(0.95, 0.95, 0.95), b)
+	Lot.boite_c(Vector3(2.52, 0.5, 9.5), pos + b * Vector3(0, 3.2, 0.8), Color(0.2, 0.35, 0.6), b)
+	var roue := Basis(Vector3.FORWARD, PI * 0.5)
+	for zz in [-5.5, 2.5, 4.0]:
+		for xx in [-1.1, 1.1]:
+			Lot.cylindre(0.5, 0.35, pos + b * Vector3(xx, 0.5, zz), Lot.couleur(Color(0.05, 0.05, 0.05)), b * roue)
 
 
 static func _rocade(racine: Node3D, rng: RandomNumberGenerator) -> void:
