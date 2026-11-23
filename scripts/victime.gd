@@ -4,6 +4,7 @@
 extends Node3D
 
 const Geo = preload("res://scripts/geo.gd")
+const Corps = preload("res://scripts/corps.gd")
 
 const GESTES: Array = ["bilan", "oxygene", "pls", "immobilisation", "couverture", "transmettre", "brancard"]
 const NOMS_GESTES: Dictionary = {
@@ -39,6 +40,7 @@ var bilan_transmis := false
 var prise_en_charge := false     # chargée dans le VSAV
 var dans_fumee := false
 var _corps: Node3D
+var corps: Node3D   # le corps articulé (corps.gd), allongé
 var _etiquette: Label3D
 
 
@@ -48,20 +50,12 @@ func construire(p_nom: String, p_age: int, p_sexe: String) -> void:
 	sexe = p_sexe
 	_corps = Node3D.new()
 	add_child(_corps)
-	var vetement := Color(0.45, 0.25, 0.3) if sexe == "F" else Color(0.25, 0.32, 0.45)
-	var pantalon := Color(0.2, 0.2, 0.25)
-	var peau: Color = [Color(0.93, 0.78, 0.65), Color(0.78, 0.6, 0.45), Color(0.5, 0.35, 0.25)].pick_random()
-	# Corps allongé sur le dos (la tête vers -z)
-	Geo.boite(_corps, Vector3(0.42, 0.22, 0.62), Vector3(0, 0.13, -0.35), vetement, false)
-	for cote in [-1.0, 1.0]:
-		var jambe: MeshInstance3D = Geo.cylindre(_corps, 0.09, 0.85, Vector3(cote * 0.11, 0.1, 0.4), pantalon)
-		jambe.rotation.x = PI * 0.5
-		Geo.boite(_corps, Vector3(0.12, 0.16, 0.08), Vector3(cote * 0.11, 0.14, 0.85), Color(0.1, 0.1, 0.1), false)
-		var bras: MeshInstance3D = Geo.cylindre(_corps, 0.06, 0.6, Vector3(cote * 0.3, 0.1, -0.3), vetement)
-		bras.rotation.x = PI * 0.5
-		Geo.sphere(_corps, 0.06, Vector3(cote * 0.3, 0.1, 0.02), peau)
-	Geo.sphere(_corps, 0.13, Vector3(0, 0.14, -0.8), peau)
-	Geo.sphere(_corps, 0.135, Vector3(0, 0.17, -0.83), Color(0.25, 0.18, 0.12) if randf() < 0.7 else Color(0.8, 0.8, 0.78))
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	corps = Corps.new()
+	_corps.add_child(corps)
+	corps.construire(Corps.tenue_civile(rng, sexe, age))
+	corps.allonger(true)
 	_etiquette = Geo.texte(self, "Victime", Vector3(0, 1.2, 0), 32, Color(1, 0.6, 0.6))
 
 
@@ -275,3 +269,8 @@ func gravite_finale() -> String:
 	if etat < 40.0:
 		return "urgence absolue"
 	return "urgence relative"
+
+
+func _process(delta: float) -> void:
+	if corps != null and visible:
+		corps.animer(0.0, delta)

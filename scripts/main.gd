@@ -943,6 +943,8 @@ func _rentre() -> void:
 	joueur.teleporter(e.global_position + Vector3(e.largeur * 0.5 + 1.5, 0.2, 0), PI)
 	joueur.activer(true)
 	joueur.ari = false
+	if equipages.has("FPT"):
+		equipages["FPT"][2].set_ari(false)
 	joueur.lance = false
 	joueur.porte_victime = false
 	_fin_intervention()
@@ -982,6 +984,7 @@ func _capeler() -> void:
 		hud.radio("Vous", "ARI déjà capelé.", "#dddddd")
 		return
 	joueur.ari = true
+	equipages["FPT"][2].set_ari(true)   # l'équipier du binôme capelle aussi
 	fpt.ouvrir_porte("coffre_droit_0")   # les ARI sont rangés dans le coffre avant droit
 	joueur.air = 300.0
 	hud.radio("Vous", "ARI capelé, contrôle de la pression : 300 bars. Masque prêt.", "#dddddd")
@@ -1137,6 +1140,8 @@ func _retour_feu() -> void:
 	env.fog_density = 0.0009
 	env.fog_light_color = Color(0.72, 0.76, 0.82)
 	joueur.ari = false
+	if equipages.has("FPT"):
+		equipages["FPT"][2].set_ari(false)
 	joueur.lance = false
 	joueur.jet.emitting = false
 	joueur.activer(false)
