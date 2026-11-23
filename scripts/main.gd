@@ -157,25 +157,46 @@ func _environnement() -> void:
 	env.background_mode = Environment.BG_SKY
 	var ciel := Sky.new()
 	var mat_ciel := ProceduralSkyMaterial.new()
-	mat_ciel.sky_top_color = Color(0.35, 0.5, 0.75)
-	mat_ciel.sky_horizon_color = Color(0.72, 0.76, 0.82)
+	mat_ciel.sky_top_color = Color(0.28, 0.45, 0.75)
+	mat_ciel.sky_horizon_color = Color(0.74, 0.79, 0.86)
+	mat_ciel.ground_horizon_color = Color(0.74, 0.79, 0.86)
+	mat_ciel.ground_bottom_color = Color(0.3, 0.32, 0.3)
+	mat_ciel.sun_angle_max = 20.0
 	ciel.sky_material = mat_ciel
 	env.sky = ciel
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.78, 0.77, 0.74)
-	env.ambient_light_energy = 0.55
+	# Lumière ambiante : moitié ciel, moitié couleur neutre (sinon tout devient bleu).
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	env.ambient_light_sky_contribution = 0.45
+	env.ambient_light_color = Color(0.8, 0.78, 0.74)
+	env.ambient_light_energy = 0.9
+	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.tonemap_exposure = 1.05
+	env.tonemap_white = 6.0
+	# Ombres de contact, halo lumineux autour des gyrophares et du feu, couleurs.
+	env.ssao_enabled = true
+	env.ssao_radius = 1.2
+	env.ssao_intensity = 1.6
+	env.glow_enabled = true
+	env.glow_intensity = 0.7
+	env.glow_bloom = 0.02
+	env.glow_hdr_threshold = 1.1
+	env.adjustment_enabled = true
+	env.adjustment_saturation = 1.1
+	env.adjustment_contrast = 1.05
 	env.fog_enabled = true
 	env.fog_light_color = Color(0.72, 0.76, 0.82)
 	env.fog_density = 0.0015
+	env.fog_aerial_perspective = 0.4
 	we.environment = env
 	add_child(we)
 	var soleil := DirectionalLight3D.new()
-	soleil.rotation_degrees = Vector3(-52, -35, 0)
-	soleil.light_energy = 1.35
-	soleil.light_color = Color(1.0, 0.96, 0.88)
+	soleil.rotation_degrees = Vector3(-42, -35, 0)
+	soleil.light_energy = 1.5
+	soleil.light_color = Color(1.0, 0.95, 0.86)
 	soleil.shadow_enabled = true
-	soleil.directional_shadow_max_distance = 150.0
+	soleil.shadow_blur = 1.5
+	soleil.directional_shadow_max_distance = 160.0
 	add_child(soleil)
 
 

@@ -3,6 +3,8 @@
 ## L'eau de la lance le fait reculer.
 extends Node3D
 
+const Tex = preload("res://scripts/textures.gd")
+
 const X0 := -40.7
 const X1 := -23.3
 const Y0 := 6.1
@@ -39,6 +41,33 @@ func preparer() -> void:
 		lum.position = centre + Vector3(0, 1.2, 0)
 		add_child(lum)
 		p["lumiere"] = lum
+		# Fumée et flammes qui sortent par la fenêtre sur rue (pièces avec fenêtre)
+		var zf := -1000.0
+		for zc in [-101.0, -93.5, -87.5, -82.5]:
+			if zc > z0 and zc < z1:
+				zf = zc
+		if zf > -999.0:
+			var sortie := Vector3(X0 - 0.6, 7.9, zf)
+			var fu := _fumee(sortie, Vector3(0.3, 0.4, 0.5))
+			fu.direction = Vector3(-0.8, 1, 0)
+			fu.spread = 25.0
+			fu.gravity = Vector3(0.3, 1.5, 0)
+			fu.initial_velocity_min = 1.5
+			fu.initial_velocity_max = 2.5
+			var g2 := Gradient.new()
+			g2.set_color(0, Color(0.12, 0.12, 0.12, 0.0))
+			g2.set_color(1, Color(0.35, 0.35, 0.36, 0.0))
+			g2.add_point(0.15, Color(0.12, 0.12, 0.12, 0.25))
+			g2.add_point(0.5, Color(0.25, 0.25, 0.26, 0.2))
+			fu.color_ramp = g2
+			fu.lifetime = 6.0
+			fu.amount = 110
+			fu.scale_amount_min = 2.0
+			fu.scale_amount_max = 5.0
+			p["fumee_fenetre"] = fu
+			var fl := _flammes(Vector3(X0 - 0.2, 7.2, zf), Vector3(0.1, 0.2, 0.4))
+			fl.direction = Vector3(-0.5, 1, 0)
+			p["flammes_fenetre"] = fl
 		pieces.append(p)
 
 
@@ -175,25 +204,36 @@ func _maj_visuels() -> void:
 		lum.light_energy = 0.0 if inten <= 0.0 else (1.5 + inten / 25.0 + sin(_t * 17.0) * 0.4)
 		var fu: CPUParticles3D = p["fumee_fx"]
 		fu.emitting = p["fumee"] > 8.0
+		if p.has("fumee_fenetre"):
+			var ff: CPUParticles3D = p["fumee_fenetre"]
+			ff.emitting = p["fumee"] > 25.0
+			var flf: CPUParticles3D = p["flammes_fenetre"]
+			flf.emitting = inten > 65.0
+
+
+## Petit carré toujours tourné vers la caméra, avec une tache ronde douce.
+func _quad(tex: Texture2D, additif: bool) -> QuadMesh:
+	var q := QuadMesh.new()
+	q.size = Vector2(1, 1) if additif else Vector2(2, 2)
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.vertex_color_use_as_albedo = true
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.albedo_texture = tex
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	if additif:
+		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	q.material = m
+	return q
 
 
 func _flammes(pos: Vector3, etendue: Vector3) -> CPUParticles3D:
 	var c := CPUParticles3D.new()
 	c.position = pos
-	c.amount = 70
+	c.amount = 90
 	c.lifetime = 0.9
 	c.emitting = false
-	var sm := SphereMesh.new()
-	sm.radius = 0.25
-	sm.height = 0.5
-	sm.radial_segments = 8
-	sm.rings = 4
-	var m := StandardMaterial3D.new()
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.vertex_color_use_as_albedo = true
-	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	sm.material = m
-	c.mesh = sm
+	c.mesh = _quad(Tex.tache(1.6), true)
 	c.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
 	c.emission_box_extents = etendue
 	c.direction = Vector3.UP
@@ -216,16 +256,7 @@ func _fumee(pos: Vector3, etendue: Vector3) -> CPUParticles3D:
 	c.amount = 60
 	c.lifetime = 3.0
 	c.emitting = false
-	var sm := SphereMesh.new()
-	sm.radius = 0.45
-	sm.height = 0.9
-	sm.radial_segments = 8
-	sm.rings = 4
-	var m := StandardMaterial3D.new()
-	m.vertex_color_use_as_albedo = true
-	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	sm.material = m
-	c.mesh = sm
+	c.mesh = _quad(Tex.tache(1.2), false)
 	c.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
 	c.emission_box_extents = etendue
 	c.direction = Vector3(1, 0, 0)
@@ -233,12 +264,12 @@ func _fumee(pos: Vector3, etendue: Vector3) -> CPUParticles3D:
 	c.gravity = Vector3(0, 0.05, 0)
 	c.initial_velocity_min = 0.1
 	c.initial_velocity_max = 0.4
-	c.scale_amount_min = 1.0
-	c.scale_amount_max = 2.2
+	c.scale_amount_min = 1.5
+	c.scale_amount_max = 3.0
 	var g := Gradient.new()
 	g.set_color(0, Color(0.15, 0.15, 0.15, 0.0))
 	g.set_color(1, Color(0.1, 0.1, 0.1, 0.0))
-	g.add_point(0.3, Color(0.18, 0.18, 0.18, 0.35))
+	g.add_point(0.3, Color(0.2, 0.2, 0.2, 0.55))
 	c.color_ramp = g
 	add_child(c)
 	return c

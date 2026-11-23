@@ -23,11 +23,16 @@ static func mat(couleur: Color, emission: float = 0.0) -> StandardMaterial3D:
 
 ## Boîte. Si "solide" est vrai, on peut marcher dessus et on ne la traverse pas.
 static func boite(parent: Node, taille: Vector3, pos: Vector3, couleur: Color, solide: bool = true) -> Node3D:
+	return boite_mat(parent, taille, pos, mat(couleur), solide)
+
+
+## Boîte avec un matériau donné (texture, carrosserie…).
+static func boite_mat(parent: Node, taille: Vector3, pos: Vector3, materiau: Material, solide: bool = true) -> Node3D:
 	var mi := MeshInstance3D.new()
 	var bm := BoxMesh.new()
 	bm.size = taille
 	mi.mesh = bm
-	mi.material_override = mat(couleur)
+	mi.material_override = materiau
 	if solide:
 		var corps := StaticBody3D.new()
 		corps.position = pos
@@ -40,6 +45,22 @@ static func boite(parent: Node, taille: Vector3, pos: Vector3, couleur: Color, s
 		corps.add_child(cs)
 		return corps
 	mi.position = pos
+	parent.add_child(mi)
+	return mi
+
+
+## Toit à deux pans. "faitage_x" : la ligne de faîte suit l'axe x.
+static func toit(parent: Node, largeur: float, profondeur: float, hauteur: float, pos: Vector3, materiau: Material, faitage_x: bool = true) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var pm := PrismMesh.new()
+	if faitage_x:
+		pm.size = Vector3(profondeur, hauteur, largeur)
+		mi.rotation.y = PI * 0.5
+	else:
+		pm.size = Vector3(largeur, hauteur, profondeur)
+	mi.mesh = pm
+	mi.material_override = materiau
+	mi.position = pos + Vector3(0, hauteur * 0.5, 0)
 	parent.add_child(mi)
 	return mi
 
@@ -80,6 +101,8 @@ static func texte(parent: Node, contenu: String, pos: Vector3, taille: int = 48,
 	l.position = pos
 	if toujours_face:
 		l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	else:
+		l.double_sided = false
 	parent.add_child(l)
 	return l
 
@@ -87,7 +110,8 @@ static func texte(parent: Node, contenu: String, pos: Vector3, taille: int = 48,
 ## Mur droit avec des ouvertures (portes, fenêtres).
 ## axe "x" : le mur suit l'axe x à z = fixe. axe "z" : il suit l'axe z à x = fixe.
 ## Chaque ouverture : [centre, largeur, y_bas, y_haut] (hauteurs absolues).
-static func mur(parent: Node, axe: String, fixe: float, s0: float, s1: float, y0: float, h: float, ep: float, couleur: Color, ouvertures: Array = []) -> void:
+static func mur(parent: Node, axe: String, fixe: float, s0: float, s1: float, y0: float, h: float, ep: float, couleur: Color, ouvertures: Array = [], materiau: Material = null) -> void:
+	_mur_mat = materiau if materiau != null else mat(couleur)
 	# On regroupe les ouvertures par colonne (même centre) : fenêtres de plusieurs étages.
 	var colonnes: Dictionary = {}
 	for o in ouvertures:
@@ -121,6 +145,9 @@ static func mur(parent: Node, axe: String, fixe: float, s0: float, s1: float, y0
 		_segment(parent, axe, fixe, cur, s1, y0, y0 + h, ep, couleur)
 
 
+static var _mur_mat: Material = null
+
+
 static func _segment(parent: Node, axe: String, fixe: float, a: float, b: float, ya: float, yb: float, ep: float, couleur: Color) -> void:
 	var longueur: float = b - a
 	var hauteur: float = yb - ya
@@ -129,6 +156,6 @@ static func _segment(parent: Node, axe: String, fixe: float, a: float, b: float,
 	var centre: float = (a + b) * 0.5
 	var cy: float = (ya + yb) * 0.5
 	if axe == "x":
-		boite(parent, Vector3(longueur, hauteur, ep), Vector3(centre, cy, fixe), couleur)
+		boite_mat(parent, Vector3(longueur, hauteur, ep), Vector3(centre, cy, fixe), _mur_mat)
 	else:
-		boite(parent, Vector3(ep, hauteur, longueur), Vector3(fixe, cy, centre), couleur)
+		boite_mat(parent, Vector3(ep, hauteur, longueur), Vector3(fixe, cy, centre), _mur_mat)

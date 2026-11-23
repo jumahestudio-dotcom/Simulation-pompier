@@ -45,7 +45,7 @@ func _creer_jet() -> void:
 	sm.radial_segments = 6
 	sm.rings = 3
 	var m := StandardMaterial3D.new()
-	m.albedo_color = Color(0.75, 0.85, 1.0, 0.7)
+	m.albedo_color = Color(0.85, 0.9, 1.0, 0.45)
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	sm.material = m
 	jet.mesh = sm
@@ -54,7 +54,7 @@ func _creer_jet() -> void:
 	jet.initial_velocity_min = 13.0
 	jet.initial_velocity_max = 15.0
 	jet.gravity = Vector3(0, -6.0, 0)
-	jet.position = Vector3(0.2, -0.3, -0.9)
+	jet.position = Vector3(0.2, -0.35, -1.5)
 	camera.add_child(jet)
 
 

@@ -15,6 +15,11 @@ func _ready() -> void:
 	add_child(main)
 	await _attendre(1.5)
 	await _photo("1_caserne")
+	main.joueur.teleporter(Vector3(-250, 0.2, -22), PI * 0.5 - 0.45)
+	main.joueur.camera.rotation.x = -0.12
+	await _attendre(0.5)
+	await _photo("1b_remise")
+	main.joueur.camera.rotation.x = 0.0
 	main.joueur.teleporter(Vector3(-250, 0.2, 10), PI * 0.15)
 	await _attendre(0.5)
 	await _photo("2_boulevard")
