@@ -13,6 +13,7 @@ func _ready() -> void:
 	main.vitesse_test = 8.0
 	await get_tree().create_timer(1.0).timeout
 	await _test_portes_vsav()
+	await _test_fpt()
 	for id in ["malaise_domicile", "malaise_voie_publique", "feu_appartement"]:
 		for essai in 2:
 			await _jouer(id)
@@ -46,6 +47,44 @@ func _test_portes_vsav() -> void:
 	await get_tree().create_timer(1.5).timeout
 	main.joueur.teleporter(Vector3(-250, 0.2, -22), 0.0)
 	resultats.append("portes VSAV : OK (monté et descendu)")
+
+
+## FPT : ouvre un rideau de coffre et la porte de l'équipage, monte en cabine, redescend.
+func _test_fpt() -> void:
+	var f = main.fpt
+	main.joueur.teleporter(f.to_global(Vector3(2.0, 0.05, 1.4)), f.rotation.y)
+	await get_tree().create_timer(0.2).timeout
+	var coffre: Array = main._interactions_engins().filter(func(i): return i["id"] == "porte_coffre_droit_1")
+	if coffre.is_empty():
+		resultats.append("FPT : ÉCHEC (pas de rideau à ouvrir)")
+		return
+	coffre[0]["action"].call()
+	await get_tree().create_timer(1.2).timeout
+	if not f.porte_ouverte("coffre_droit_1"):
+		resultats.append("FPT : ÉCHEC (le rideau ne s'ouvre pas)")
+		return
+	main.joueur.teleporter(f.to_global(Vector3(2.0, 0.05, -2.0)), f.rotation.y)
+	await get_tree().create_timer(0.2).timeout
+	var porte: Array = main._interactions_engins().filter(func(i): return i["id"] == "porte_equipage_droite")
+	if porte.is_empty():
+		resultats.append("FPT : ÉCHEC (pas de porte d'équipage)")
+		return
+	porte[0]["action"].call()
+	await get_tree().create_timer(1.2).timeout
+	var monter: Array = main._interactions_engins().filter(func(i): return i["id"] == "asseoir_equipage")
+	if monter.is_empty():
+		resultats.append("FPT : ÉCHEC (pas de proposition pour monter en cabine)")
+		return
+	monter[0]["action"].call()
+	await get_tree().create_timer(0.3).timeout
+	if main._assis != f:
+		resultats.append("FPT : ÉCHEC (pas assis dans la cabine)")
+		return
+	main._se_lever()
+	f.fermer_portes()
+	await get_tree().create_timer(1.2).timeout
+	main.joueur.teleporter(Vector3(-250, 0.2, -22), 0.0)
+	resultats.append("FPT : OK (rideau ouvert, monté en cabine et descendu)")
 
 
 func _attendre_etat(e: String, max_s: float) -> bool:

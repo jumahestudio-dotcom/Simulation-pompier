@@ -6,6 +6,7 @@ const Geo = preload("res://scripts/geo.gd")
 const Son = preload("res://scripts/son.gd")
 const Tex = preload("res://scripts/textures.gd")
 const VsavModele = preload("res://scripts/vsav_modele.gd")
+const FptModele = preload("res://scripts/fpt_modele.gd")
 
 signal arrive
 
@@ -22,7 +23,7 @@ var eau_max := 0.0
 var longueur := 6.5
 var largeur := 2.4
 
-var portes: Dictionary = {}     # VSAV : portes qui s'ouvrent (voir vsav_modele.gd)
+var portes: Dictionary = {}     # portes et rideaux qui s'ouvrent (voir vsav_modele.gd, fpt_modele.gd)
 var camera_cabine: Camera3D = null
 var camera_cellule: Camera3D = null
 var _cam_index := 0
@@ -43,6 +44,9 @@ func construire(p_code: String) -> void:
 		nom_complet = "Fourgon pompe-tonne"
 		eau = 3000.0
 		eau_max = 3000.0
+		portes = FptModele.construire(self)
+		_cameras()
+		return
 	else:
 		nom_complet = "Véhicule de secours et d'assistance aux victimes"
 		longueur = 5.9
@@ -169,6 +173,22 @@ func _cameras() -> void:
 		camera_cellule.fov = 85.0
 		camera_cellule.near = 0.03
 		add_child(camera_cellule)
+	elif code == "FPT":
+		# Place du chef d'agrès (avant droite) et banquette de l'équipage
+		camera_cabine = Camera3D.new()
+		camera_cabine.position = Vector3(0.6, 2.45, -3.0)
+		camera_cabine.rotation_degrees = Vector3(-6, 6, 0)
+		camera_cabine.fov = 80.0
+		camera_cabine.far = 1500.0
+		camera_cabine.near = 0.03
+		add_child(camera_cabine)
+		camera_cellule = Camera3D.new()
+		camera_cellule.position = Vector3(0.3, 2.45, -1.4)
+		camera_cellule.rotation_degrees = Vector3(-8, 4, 0)
+		camera_cellule.fov = 85.0
+		camera_cellule.far = 1500.0
+		camera_cellule.near = 0.03
+		add_child(camera_cellule)
 
 
 ## Change de point de vue pendant un trajet : poursuite, cabine, cellule. Renvoie le nom de la vue.
@@ -179,6 +199,8 @@ func changer_camera() -> String:
 		cams.append(camera_cellule)
 	_cam_index = (_cam_index + 1) % cams.size()
 	cams[_cam_index].current = true
+	if code == "FPT":
+		return ["vue de poursuite", "vue depuis la place du chef d'agrès", "vue depuis la cabine de l'équipage"][_cam_index]
 	return ["vue de poursuite", "vue depuis la cabine", "vue depuis la cellule"][_cam_index]
 
 
@@ -213,6 +235,13 @@ func porte_ouverte(nom: String) -> bool:
 	return portes.has(nom) and portes[nom]["t"] > 0.6
 
 
+## Où le joueur se retrouve quand il descend d'une place assise.
+func sortie_place() -> Vector3:
+	if code == "FPT":
+		return Vector3(FptModele.W * 0.5 + 0.9, 0.05, -2.6)
+	return Vector3(1.9, 0.05, -1.3)
+
+
 func victime_a_bord(v: bool) -> void:
 	var p := get_node_or_null("PatientABord")
 	if p != null:
@@ -221,7 +250,7 @@ func victime_a_bord(v: bool) -> void:
 
 ## Le joueur (position dans le monde) est-il dans la cellule ?
 func dans_cellule(pos: Vector3) -> bool:
-	if portes.is_empty():
+	if code != "VSAV":
 		return false
 	var l := to_local(pos)
 	return absf(l.x) < 1.0 and l.z > VsavModele.Z_CLOISON and l.z < VsavModele.Z_AR and l.y > 0.4
@@ -238,6 +267,9 @@ func _animer_portes(delta: float) -> void:
 		var n: Node3D = p["noeud"]
 		if p["type"] == "pivot":
 			n.rotation.y = lerpf(float(p["ferme"]), float(p["ouvre"]), k)
+		elif p["type"] == "rideau":
+			# Rideau à lames : il s'enroule vers le haut
+			n.scale.y = lerpf(1.0, 0.04, k)
 		else:
 			# Porte coulissante : elle sort un peu, puis glisse vers l'arrière
 			var a: Vector3 = p["ferme"]

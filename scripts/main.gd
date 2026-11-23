@@ -366,7 +366,10 @@ func _interactions_engins() -> Array:
 	for e in engins:
 		if e.portes.is_empty() or e.en_route:
 			continue
-		if e.global_position.distance_to(joueur.global_position) > 9.0:
+		if e.global_position.distance_to(joueur.global_position) > 10.0:
+			continue
+		# Pendant un feu, les gestes de l'intervention (ARI, lance) passent avant les rideaux du FPT.
+		if e.code == "FPT" and etat == "sur_place":
 			continue
 		var dedans: bool = e.dans_cellule(joueur.global_position + Vector3(0, 0.3, 0))
 		for nom in e.portes:
@@ -376,7 +379,15 @@ func _interactions_engins() -> Array:
 			if dedans:
 				# De l'intérieur, on attrape la porte par sa poignée intérieure
 				pos_l = Vector3(clampf(pos_l.x, -0.7, 0.7), 1.2, clampf(pos_l.z, -0.6, 2.7))
-			res.append({"id": "porte_" + nom, "pos": e.to_global(pos_l), "rayon": 1.4, "texte": verbe + str(pt["texte"]), "action": e.basculer_porte.bind(nom)})
+			res.append({"id": "porte_" + nom, "pos": e.to_global(pos_l), "rayon": 1.2 if e.code == "FPT" else 1.4, "texte": verbe + str(pt["texte"]), "action": e.basculer_porte.bind(nom)})
+		if e.code == "FPT":
+			if e.porte_ouverte("avant_droite"):
+				res.append({"id": "asseoir", "pos": e.to_global(Vector3(1.85, 1.0, -3.1)), "rayon": 0.9, "texte": "Monter à la place du chef d'agrès", "action": _s_asseoir.bind(e, 1)})
+			for nom2 in ["equipage_droite", "equipage_gauche"]:
+				if e.porte_ouverte(nom2):
+					var cx: float = 1.85 if nom2 == "equipage_droite" else -1.85
+					res.append({"id": "asseoir_equipage", "pos": e.to_global(Vector3(cx, 1.0, -2.0)), "rayon": 0.9, "texte": "Monter dans la cabine de l'équipage", "action": _s_asseoir.bind(e, 2)})
+			continue
 		var arriere: bool = e.porte_ouverte("arriere_gauche") or e.porte_ouverte("arriere_droite")
 		if dedans:
 			if arriere:
@@ -389,7 +400,7 @@ func _interactions_engins() -> Array:
 			if e.porte_ouverte("laterale"):
 				res.append({"id": "monter_lat", "pos": e.to_global(Vector3(1.75, 1.0, 0.1)), "rayon": 1.0, "texte": "Monter dans la cellule", "action": _monter_cellule.bind(e)})
 			if e.porte_ouverte("avant_droite"):
-				res.append({"id": "asseoir", "pos": e.to_global(Vector3(1.75, 1.0, -1.15)), "rayon": 0.9, "texte": "S'asseoir à la place passager", "action": _s_asseoir.bind(e)})
+				res.append({"id": "asseoir", "pos": e.to_global(Vector3(1.75, 1.0, -1.15)), "rayon": 0.9, "texte": "S'asseoir à la place passager", "action": _s_asseoir.bind(e, 1)})
 	return res
 
 
@@ -404,17 +415,20 @@ func _descendre_cellule(e, par: String) -> void:
 		joueur.teleporter(e.to_global(Vector3(1.9, 0.05, 0.1)), e.rotation.y - PI * 0.5)
 
 
-func _s_asseoir(e) -> void:
+func _s_asseoir(e, place: int = 1) -> void:
 	_assis = e
 	joueur.activer(false)
-	e.vue(1)
-	hud.radio("Vous", "Installé à la place passager. (E pour descendre)", "#dddddd")
+	e.vue(place)
+	var ou := "à la place passager"
+	if e.code == "FPT":
+		ou = "à la place du chef d'agrès" if place == 1 else "dans la cabine de l'équipage"
+	hud.radio("Vous", "Installé %s. (E pour descendre)" % ou, "#dddddd")
 
 
 func _se_lever() -> void:
 	var e = _assis
 	_assis = null
-	joueur.teleporter(e.to_global(Vector3(1.9, 0.05, -1.3)), e.rotation.y - PI * 0.5)
+	joueur.teleporter(e.to_global(e.sortie_place()), e.rotation.y - PI * 0.5)
 	joueur.activer(true)
 
 
@@ -968,6 +982,7 @@ func _capeler() -> void:
 		hud.radio("Vous", "ARI déjà capelé.", "#dddddd")
 		return
 	joueur.ari = true
+	fpt.ouvrir_porte("coffre_droit_0")   # les ARI sont rangés dans le coffre avant droit
 	joueur.air = 300.0
 	hud.radio("Vous", "ARI capelé, contrôle de la pression : 300 bars. Masque prêt.", "#dddddd")
 	hud.radio("Caporal Nguyen", "Contrôle d'engagement fait auprès du chef. On y va quand tu as la lance.", "#ffe9a8")
@@ -975,6 +990,7 @@ func _capeler() -> void:
 
 func _prendre_lance() -> void:
 	joueur.lance = true
+	fpt.ouvrir_porte("coffre_droit_1")   # tuyaux et lances : coffre du milieu
 	hud.radio("Vous", "Lance prise, l'établissement suit jusqu'au 2e étage. Clic gauche pour arroser.", "#dddddd")
 
 
