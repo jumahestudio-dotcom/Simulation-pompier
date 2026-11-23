@@ -71,7 +71,10 @@ func _sap() -> void:
 				if v.faits.has(g):
 					break
 	main._geste(6)
-	main._geste(7)
+	for essai in 5:   # une victime agitée peut refuser le brancard
+		main._geste(7)
+		if v.faits.has("brancard"):
+			break
 	print("Victime : ", v.texte_constantes().replace("\n", " | "), " — gestes faits ", v.faits)
 	if main.interactions.filter(func(i): return i["id"] == "transport").size() == 0:
 		print("ÉCHEC : pas de proposition de transport")

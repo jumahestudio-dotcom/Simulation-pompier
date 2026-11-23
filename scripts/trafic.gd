@@ -4,14 +4,20 @@ extends Node3D
 
 const Geo = preload("res://scripts/geo.gd")
 
-var sens := 1.0          # +1 vers l'est, -1 vers l'ouest
+var sens := 1.0          # +1 vers l'est (ou le sud sur un axe nord-sud), -1 dans l'autre sens
 var vitesse := 11.0
+var vitesse_croisiere := 11.0
 var monde = null    # le script principal, qui connaît les engins
+var axe_z := false  # false : route est-ouest ; true : route nord-sud (rocade)
+var ligne := 0.0    # coordonnée de l'axe central de la route
+var voie := 4.0
+var bas_cote := 6.8
+var a_min := -390.0
+var a_max := 640.0
+var ronds_points: Array = []   # positions le long de l'axe des ronds-points à contourner
+const RAYON_ANNEAU := 19.0
 var _decalage := 0.0
-const VOIE := 4.0
-const BAS_COTE := 6.8
-const X_MIN := -315.0
-const X_MAX := 315.0
+var _a := 0.0       # position le long de la route
 
 
 func construire(couleur: Color) -> void:
@@ -22,39 +28,71 @@ func construire(couleur: Color) -> void:
 		for xx in [-0.9, 0.9]:
 			var r: MeshInstance3D = Geo.cylindre(self, 0.33, 0.25, Vector3(xx, 0.33, zz), Color(0.05, 0.05, 0.05))
 			r.rotation.z = PI * 0.5
-	rotation.y = -PI * 0.5 if sens > 0.0 else PI * 0.5
+	_orienter()
+
+
+func _orienter() -> void:
+	if axe_z:
+		rotation.y = PI if sens > 0.0 else 0.0
+	else:
+		rotation.y = -PI * 0.5 if sens > 0.0 else PI * 0.5
+
+
+## Position le long de la route, et position latérale (à droite de l'axe).
+func _vers_monde(a: float, lateral: float) -> Vector3:
+	if axe_z:
+		return Vector3(ligne - sens * lateral, 0.0, a)
+	return Vector3(a, 0.0, ligne + sens * lateral)
+
+
+func placer(a: float) -> void:
+	_a = a
+	vitesse = vitesse_croisiere
+	global_position = _vers_monde(_a, voie)
+	_orienter()
+
+
+func _le_long(p: Vector3) -> float:
+	return p.z if axe_z else p.x
+
+
+func _travers(p: Vector3) -> float:
+	return p.x if axe_z else p.z
 
 
 func _process(delta: float) -> void:
-	var v_cible := 11.0
+	var v_cible := vitesse_croisiere
 	var cible_decalage := 0.0
-	var x: float = global_position.x
 	if monde != null:
 		for e in monde.engins:
 			var ep: Vector3 = e.global_position
-			if absf(ep.z) > 12.0:
+			var ecart: float = _travers(ep) - ligne
+			if absf(ecart) > voie + bas_cote:
 				continue
-			var dx: float = (ep.x - x) * sens   # > 0 : l'engin est devant
+			var dx: float = (_le_long(ep) - _a) * sens   # > 0 : l'engin est devant
 			if e.sirene and e.en_route and absf(dx) < 45.0:
 				# Engin prioritaire proche : on se range et on s'arrête.
-				cible_decalage = BAS_COTE - VOIE
+				cible_decalage = bas_cote - voie
 				v_cible = 0.0
-			elif not e.en_route and dx > 0.0 and dx < 14.0 and absf(absf(ep.z) - (VOIE + _decalage)) < 2.0:
+			elif not e.en_route and dx > 0.0 and dx < 14.0 and absf(absf(ecart) - (voie + _decalage)) < 2.0:
 				# Engin arrêté devant sur notre voie : on attend.
 				v_cible = 0.0
 		for c in monde.voitures:
-			if c == self:
+			if c == self or c.sens != sens or c.axe_z != axe_z or c.ligne != ligne:
 				continue
-			if c.sens != sens:
-				continue
-			var d: float = (c.global_position.x - x) * sens
+			var d: float = (c._a - _a) * sens
 			if d > 0.0 and d < 9.0:
 				v_cible = minf(v_cible, c.vitesse * 0.8)
 	vitesse = move_toward(vitesse, v_cible, delta * 6.0)
 	_decalage = move_toward(_decalage, cible_decalage, delta * 2.0)
-	x += sens * vitesse * delta
-	if x > X_MAX:
-		x = X_MIN
-	elif x < X_MIN:
-		x = X_MAX
-	global_position = Vector3(x, 0.0, sens * (VOIE + _decalage))
+	_a += sens * vitesse * delta
+	if _a > a_max:
+		_a = a_min
+	elif _a < a_min:
+		_a = a_max
+	var lateral := voie + _decalage
+	for r in ronds_points:
+		var d: float = _a - float(r)
+		if absf(d) < RAYON_ANNEAU:
+			lateral = maxf(lateral, sqrt(RAYON_ANNEAU * RAYON_ANNEAU - d * d))
+	global_position = _vers_monde(_a, lateral)

@@ -5,6 +5,7 @@ extends RefCounted
 const Geo = preload("res://scripts/geo.gd")
 const Carte = preload("res://scripts/carte.gd")
 const Tex = preload("res://scripts/textures.gd")
+const Quartiers = preload("res://scripts/quartiers.gd")
 
 const TUFFEAU: Array = [Color(0.95, 0.91, 0.80), Color(0.90, 0.86, 0.75), Color(1.0, 0.97, 0.88), Color(0.86, 0.81, 0.70)]
 const ARDOISE := Color(0.27, 0.30, 0.35)
@@ -23,38 +24,36 @@ const RESERVES: Array = [
 static func construire(racine: Node3D) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 37  # toujours la même ville
-	# Sol (herbe et trottoirs)
-	var asph: Material = Tex.mat_asphalte()
-	Geo.boite_mat(racine, Vector3(900, 1, 800), Vector3(0, -0.5, 30), Tex.mat_herbe())
-	Geo.boite_mat(racine, Vector3(660, 0.04, 420), Vector3(0, 0.02, -15), Tex.mat_paves(), false)
-	# Boulevard et rues
-	Geo.boite_mat(racine, Vector3(660, 0.05, 16), Vector3(0, 0.05, 0), asph, false)
-	Geo.boite_mat(racine, Vector3(460, 0.05, 10), Vector3(25, 0.05, -150), asph, false)
-	Geo.boite_mat(racine, Vector3(460, 0.05, 10), Vector3(25, 0.05, 120), asph, false)
+	# Sol (herbe partout, trottoirs pavés dans le centre)
+	Geo.boite_mat(racine, Vector3(1800, 1, 1400), Vector3(100, -0.5, 0), Tex.mat_herbe())
+	Geo.boite_mat(racine, Vector3(660, 0.04, 320), Vector3(0, 0.02, -2), Tex.mat_paves(), false)
+	# Toutes les rues, tracées à partir du plan (carte.gd)
+	_routes(racine)
 	for x in [-200.0, -50.0, 100.0, 250.0]:
-		Geo.boite_mat(racine, Vector3(10, 0.05, 280), Vector3(x, 0.055, -15), asph, false)
 		# Passages piétons sur le boulevard
 		for k in 6:
 			Geo.boite(racine, Vector3(0.5, 0.02, 3.0), Vector3(x - 7.5, 0.085, -6.5 + k * 2.6), Color(0.92, 0.92, 0.9), false)
-	Geo.boite_mat(racine, Vector3(10, 0.05, 130), Vector3(100, 0.055, 180), asph, false)
-	Geo.boite_mat(racine, Vector3(110, 0.05, 10), Vector3(140, 0.055, 240), asph, false)
 	# Bordures de trottoir du boulevard
 	for zb in [-8.1, 8.1]:
-		Geo.boite(racine, Vector3(660, 0.15, 0.25), Vector3(0, 0.07, zb), Color(0.7, 0.7, 0.68), false)
+		Geo.boite(racine, Vector3(1060, 0.15, 0.25), Vector3(115, 0.07, zb), Color(0.7, 0.7, 0.68), false)
 	# Marquage au sol du boulevard
-	var xm := -320.0
-	while xm < 320.0:
+	var xm := -395.0
+	while xm < 650.0:
 		Geo.boite(racine, Vector3(3, 0.02, 0.2), Vector3(xm, 0.085, 0), Color(0.9, 0.9, 0.9), false)
 		xm += 8.0
-	# Rivière (le Cher) et pont
-	Geo.boite(racine, Vector3(900, 0.05, 40), Vector3(0, 0.07, 180), Color(0.2, 0.35, 0.45), false)
+	# Rivière (le Cher), ponts de la rue et de la rocade
+	Geo.boite(racine, Vector3(1800, 0.05, 40), Vector3(100, 0.07, 180), Color(0.2, 0.35, 0.45), false)
 	Geo.texte(racine, "Le Cher", Vector3(-120, 2, 180), 120, Color(0.7, 0.85, 1.0))
-	Geo.boite(racine, Vector3(14, 0.4, 48), Vector3(100, 0.2, 180), Color(0.6, 0.58, 0.52))
-	for cote in [-1.0, 1.0]:
-		Geo.boite(racine, Vector3(0.4, 1.0, 48), Vector3(100 + cote * 7.0, 0.9, 180), Color(0.7, 0.67, 0.6))
+	for pont in [[100.0, 14.0], [-420.0, 24.0]]:
+		var px: float = pont[0]
+		var pl: float = pont[1]
+		Geo.boite_mat(racine, Vector3(pl, 0.4, 48), Vector3(px, 0.2, 180), Tex.mat_beton(Color(0.8, 0.78, 0.72)))
+		for cote in [-1.0, 1.0]:
+			Geo.boite(racine, Vector3(0.4, 1.0, 48), Vector3(px + cote * pl * 0.5, 0.9, 180), Color(0.7, 0.67, 0.6))
 	# Parapets des quais (on ne tombe pas à l'eau)
-	Geo.mur(racine, "x", 159.5, -450, 450, 0, 1.0, 0.5, Color(0.7, 0.67, 0.6), [[100.0, 14.0, 0.0, 1.0]])
-	Geo.mur(racine, "x", 200.5, -450, 450, 0, 1.0, 0.5, Color(0.7, 0.67, 0.6), [[100.0, 14.0, 0.0, 1.0]])
+	var trous: Array = [[100.0, 14.0, 0.0, 1.0], [-420.0, 24.0, 0.0, 1.0]]
+	Geo.mur(racine, "x", 159.5, -800, 1000, 0, 1.0, 0.5, Color(0.7, 0.67, 0.6), trous)
+	Geo.mur(racine, "x", 200.5, -800, 1000, 0, 1.0, 0.5, Color(0.7, 0.67, 0.6), trous)
 	# Platanes le long du boulevard
 	var xa := -300.0
 	while xa < 300.0:
@@ -78,7 +77,18 @@ static func construire(racine: Node3D) -> void:
 		_rangee(racine, rng, bx[0], bx[1], 8.0, 1.0)       # côté sud du boulevard
 		_rangee(racine, rng, bx[0], bx[1], -145.0, 1.0)    # côté sud de la rue du nord
 		_rangee(racine, rng, bx[0], bx[1], 115.0, -1.0)    # côté nord de la rue du sud
+		_rangee(racine, rng, bx[0], bx[1], 125.0, 1.0)     # maisons de quai, face à la rue du sud
+	# Rangées le long des rues nord-sud (on laisse les angles aux rangées est-ouest)
+	for xs in [-200.0, -50.0, 100.0, 250.0]:
+		for cote in [-1.0, 1.0]:
+			for zr in [[-128.0, -30.0], [30.0, 98.0]]:
+				_rangee_z(racine, rng, zr[0], zr[1], xs + cote * 5.0, cote)
+	# Cœurs d'îlots : jardins, arbres et petites dépendances
+	for bx in blocs_x:
+		for bz in [[-145.0, -8.0], [8.0, 115.0]]:
+			_coeur_ilot(racine, rng, Rect2(bx[0] + 26.0, bz[0] + 26.0, bx[1] - bx[0] - 52.0, bz[1] - bz[0] - 52.0))
 	_voitures_garees(racine, rng)
+	Quartiers.construire(racine)
 	_caserne(racine)
 	_maison(racine)
 	_immeuble(racine)
@@ -117,6 +127,92 @@ static func _rangee(racine: Node3D, rng: RandomNumberGenerator, x0: float, x1: f
 			if rng.randf() < 0.6:
 				Geo.boite(racine, Vector3(0.7, 2.6, 0.9), Vector3(x + rng.randf_range(1.5, largeur - 1.5), hauteur_et + 2.0, cz + rng.randf_range(-1.5, 1.5)), Color(0.75, 0.68, 0.6), false)
 		x += largeur + rng.randf_range(0.0, 1.5)
+
+
+## Une rangée d'immeubles le long d'une rue nord-sud. "bord" : x du bord de la chaussée.
+## "sens" : -1 si les immeubles sont à l'ouest de ce bord, +1 à l'est.
+static func _rangee_z(racine: Node3D, rng: RandomNumberGenerator, z0: float, z1: float, bord: float, sens: float) -> void:
+	var z := z0
+	while z < z1 - 6.0:
+		var largeur := minf(rng.randf_range(9.0, 16.0), z1 - z)
+		var profondeur := rng.randf_range(10.0, 14.0)
+		var hauteur_et: float = floor(rng.randf_range(7.0, 16.0) / 3.0) * 3.0
+		var x_facade := bord + sens * 4.0
+		var cx := x_facade + sens * profondeur * 0.5
+		var r := Rect2(minf(x_facade, x_facade + sens * profondeur), z, profondeur, largeur)
+		var libre := true
+		for res in RESERVES:
+			var rr: Rect2 = res
+			if rr.intersects(r):
+				libre = false
+		if libre:
+			var c: Color = TUFFEAU[rng.randi() % TUFFEAU.size()]
+			var cz := z + largeur * 0.5
+			Geo.boite_mat(racine, Vector3(profondeur, hauteur_et, largeur - 0.4), Vector3(cx, hauteur_et * 0.5, cz), Tex.mat_facade(c))
+			Geo.boite(racine, Vector3(profondeur + 0.3, 0.35, largeur - 0.1), Vector3(cx, hauteur_et + 0.17, cz), Color(0.9, 0.88, 0.82), false)
+			Geo.toit(racine, profondeur + 0.4, largeur - 0.2, rng.randf_range(3.0, 4.5), Vector3(cx, hauteur_et + 0.35, cz), Tex.mat_ardoise(), false)
+			if rng.randf() < 0.6:
+				Geo.boite(racine, Vector3(0.9, 2.6, 0.7), Vector3(cx + rng.randf_range(-1.5, 1.5), hauteur_et + 2.0, z + rng.randf_range(1.5, largeur - 1.5)), Color(0.75, 0.68, 0.6), false)
+		z += largeur + rng.randf_range(0.0, 1.5)
+
+
+## Le cœur d'un îlot du centre : jardins privés, arbres, murets et petites dépendances.
+static func _coeur_ilot(racine: Node3D, rng: RandomNumberGenerator, r: Rect2) -> void:
+	for res in RESERVES:
+		var rr: Rect2 = res
+		if rr.grow(4.0).intersects(r):
+			# On laisse de la place au bâtiment réservé (caserne, immeuble du feu…)
+			if rr.get_center().x < r.get_center().x:
+				var fin := r.end.x
+				r.position.x = rr.end.x + 6.0
+				r.size.x = fin - r.position.x
+			else:
+				r.size.x = rr.position.x - 6.0 - r.position.x
+	if r.size.x < 20.0:
+		return
+	var c: Vector2 = r.get_center()
+	Geo.boite_mat(racine, Vector3(r.size.x, 0.05, r.size.y), Vector3(c.x, 0.06, c.y), Tex.mat_herbe(), false)
+	# Murets de séparation des jardins
+	var x := r.position.x + rng.randf_range(12.0, 20.0)
+	while x < r.end.x - 8.0:
+		Geo.boite(racine, Vector3(0.4, 1.8, r.size.y), Vector3(x, 0.9, c.y), Color(0.82, 0.78, 0.68), false)
+		x += rng.randf_range(14.0, 22.0)
+	Geo.boite(racine, Vector3(r.size.x, 1.8, 0.4), Vector3(c.x, 0.9, c.y), Color(0.82, 0.78, 0.68), false)
+	# Arbres
+	for k in int(r.size.x * r.size.y / 500.0):
+		var p := Vector3(rng.randf_range(r.position.x + 3.0, r.end.x - 3.0), 0, rng.randf_range(r.position.y + 3.0, r.end.y - 3.0))
+		var t := rng.randf_range(0.8, 1.3)
+		Geo.cylindre(racine, 0.22 * t, 4.0 * t, p + Vector3(0, 2.0 * t, 0), Color(0.5, 0.42, 0.33))
+		Geo.sphere(racine, 2.3 * t, p + Vector3(0, 5.0 * t, 0), Color(0.22, 0.36, 0.16).lerp(Color(0.38, 0.5, 0.22), rng.randf()))
+	# Dépendances (ateliers, remises) à toit d'ardoise
+	for k in 3:
+		var l := rng.randf_range(6.0, 10.0)
+		var p2 := Vector3(rng.randf_range(r.position.x + 6.0, r.end.x - 6.0), 0, rng.randf_range(r.position.y + 5.0, r.end.y - 5.0))
+		Geo.boite_mat(racine, Vector3(l, 3.0, 6.0), p2 + Vector3(0, 1.5, 0), Tex.mat_facade(TUFFEAU[k % TUFFEAU.size()]))
+		Geo.toit(racine, l, 6.4, 1.8, p2 + Vector3(0, 3.0, 0), Tex.mat_ardoise(), true)
+
+
+## Trace les chaussées à partir des noeuds et des rues du plan.
+static func _routes(racine: Node3D) -> void:
+	var asph: Material = Tex.mat_asphalte()
+	var deja: Dictionary = {}
+	for ar in Carte.ARETES:
+		var a: Vector3 = Carte.NOEUDS[ar[0]]
+		var b: Vector3 = Carte.NOEUDS[ar[1]]
+		var l: float = Carte.largeur_arete(ar[0], ar[1])
+		var milieu: Vector3 = (a + b) * 0.5
+		var longueur: float = a.distance_to(b)
+		var hauteur := 0.05 if l >= 16.0 else 0.055
+		if absf(a.x - b.x) < 0.5:
+			Geo.boite_mat(racine, Vector3(l, 0.05, longueur), Vector3(milieu.x, hauteur, milieu.z), asph, false)
+		else:
+			Geo.boite_mat(racine, Vector3(longueur, 0.05, l), Vector3(milieu.x, hauteur, milieu.z), asph, false)
+		# Carrefours : on remplit le coin
+		for n in [ar[0], ar[1]]:
+			if not deja.has(n):
+				deja[n] = true
+				var p: Vector3 = Carte.NOEUDS[n]
+				Geo.boite_mat(racine, Vector3(l, 0.05, l), Vector3(p.x, 0.053, p.z), asph, false)
 
 
 static func _lampadaire(racine: Node3D, pos: Vector3) -> void:

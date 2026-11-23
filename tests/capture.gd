@@ -23,6 +23,28 @@ func _ready() -> void:
 	main.joueur.teleporter(Vector3(-250, 0.2, 10), PI * 0.15)
 	await _attendre(0.5)
 	await _photo("2_boulevard")
+	# Vues aériennes des quartiers
+	var cam := Camera3D.new()
+	cam.far = 3000.0
+	add_child(cam)
+	cam.make_current()
+	var vues := [
+		["7_vue_ensemble", Vector3(120, 330, 620), Vector3(80, 0, -60)],
+		["8_centre_ancien", Vector3(-120, 45, 60), Vector3(-20, 0, -40)],
+		["9_grands_ensembles", Vector3(-120, 70, -150), Vector3(-200, 0, -320)],
+		["10_pavillons", Vector3(150, 40, -130), Vector3(220, 0, -260)],
+		["11_zone_activites", Vector3(380, 70, 120), Vector3(520, 0, -40)],
+		["12_rocade", Vector3(-370, 40, -60), Vector3(-420, 0, -220)],
+		["13_bords_du_cher", Vector3(40, 30, 130), Vector3(150, 0, 230)],
+	]
+	for v in vues:
+		cam.global_position = v[1]
+		cam.look_at(v[2])
+		await _attendre(0.6)
+		await _photo(v[0])
+	cam.queue_free()
+	main.joueur.camera.make_current()
+	await _attendre(0.2)
 	main.force_scenario = "feu_appartement"
 	main.prochain_appel = 0.0
 	await _attendre(0.3)

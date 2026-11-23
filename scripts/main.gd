@@ -101,13 +101,30 @@ func _ready() -> void:
 	alarme.position = Vector3(-250, 4, -40)
 	add_child(alarme)
 	var couleurs: Array = [Color(0.2, 0.3, 0.6), Color(0.6, 0.6, 0.62), Color(0.1, 0.1, 0.12), Color(0.55, 0.15, 0.15), Color(0.9, 0.9, 0.9), Color(0.3, 0.45, 0.3), Color(0.7, 0.6, 0.2), Color(0.35, 0.35, 0.4)]
-	for i in couleurs.size():
+	# Boulevard (axe est-ouest) puis rocade (axe nord-sud, voies plus larges).
+	for i in 12:
 		var v = Trafic.new()
 		v.sens = 1.0 if i % 2 == 0 else -1.0
 		v.monde = self
 		add_child(v)
-		v.construire(couleurs[i])
-		v.global_position = Vector3(-300.0 + i * 78.0, 0.0, v.sens * 4.0)
+		v.construire(couleurs[i % couleurs.size()])
+		v.placer(-390.0 + i * 85.0)
+		voitures.append(v)
+	for i in 10:
+		var v = Trafic.new()
+		v.sens = 1.0 if i % 2 == 0 else -1.0
+		v.axe_z = true
+		v.ligne = -420.0
+		v.voie = 5.5
+		v.bas_cote = 9.0
+		v.a_min = -600.0
+		v.a_max = 600.0
+		v.vitesse_croisiere = 22.0
+		v.ronds_points = [-300.0, 0.0, 240.0]
+		v.monde = self
+		add_child(v)
+		v.construire(couleurs[(i + 3) % couleurs.size()])
+		v.placer(-580.0 + i * 120.0)
 		voitures.append(v)
 	_creer_collegues()
 	hud = Hud.new()
@@ -186,7 +203,7 @@ func _environnement() -> void:
 	env.adjustment_contrast = 1.05
 	env.fog_enabled = true
 	env.fog_light_color = Color(0.72, 0.76, 0.82)
-	env.fog_density = 0.0015
+	env.fog_density = 0.0009
 	env.fog_aerial_perspective = 0.4
 	we.environment = env
 	add_child(we)
@@ -348,6 +365,9 @@ func _maj_etat_hud() -> void:
 	var m := int(heure / 60.0) % 60
 	var couleurs := {"disponible": "#7dff7d", "parti": "#ffb347", "sur_les_lieux": "#ff6b6b", "transport_hopital": "#c89bff", "arrive_hopital": "#c89bff", "retour": "#9fd3ff", "indisponible": "#aaaaaa"}
 	var t := "[b]Garde — %02d:%02d[/b]   Statut : [color=%s]%s[/color]\n" % [h, m, couleurs.get(statut, "#ffffff"), statut.replace("_", " ")]
+	var cam := get_viewport().get_camera_3d()
+	if cam != null:
+		t += "Secteur : [color=#ffe08a]%s[/color]\n" % Carte.quartier_a(cam.global_position)
 	t += "Sapeur 2e classe — XP %d — %d intervention(s)\n" % [int(carriere.get("xp", 0)), int(carriere.get("interventions", 0))]
 	var tenue_txt := "tenue de service"
 	if joueur.tenue == "suap":
@@ -900,7 +920,7 @@ func _feu_process(delta: float) -> void:
 		_evacuer()
 		joueur.sante = 60.0
 	var fum_vue: float = fumee if _dans_batiment else 0.0
-	env.fog_density = lerpf(env.fog_density, 0.0015 + fum_vue / 100.0 * 0.22, minf(1.0, delta * 3.0))
+	env.fog_density = lerpf(env.fog_density, 0.0009 + fum_vue / 100.0 * 0.22, minf(1.0, delta * 3.0))
 	env.fog_light_color = Color(0.72, 0.76, 0.82).lerp(Color(0.12, 0.11, 0.1), clampf(fum_vue / 60.0, 0.0, 1.0))
 	if victime != null and not mission["victime_sauvee"]:
 		victime.dans_fumee = not joueur.porte_victime
@@ -964,7 +984,7 @@ func _retour_feu() -> void:
 	retirer_interaction("rentrer")
 	for id in ["ari", "lance", "porte", "palier", "victime"]:
 		retirer_interaction(id)
-	env.fog_density = 0.0015
+	env.fog_density = 0.0009
 	env.fog_light_color = Color(0.72, 0.76, 0.82)
 	joueur.ari = false
 	joueur.lance = false

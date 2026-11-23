@@ -3,11 +3,25 @@
 extends RefCounted
 
 const NOEUDS: Dictionary = {
+	# Centre ancien (boulevard des Acacias et rues perpendiculaires)
 	"caserne": Vector3(-250, 0, 0),
 	"B1": Vector3(-200, 0, 0), "B2": Vector3(-50, 0, 0), "B3": Vector3(100, 0, 0), "B4": Vector3(250, 0, 0),
 	"N1": Vector3(-200, 0, -150), "N2": Vector3(-50, 0, -150), "N3": Vector3(100, 0, -150), "N4": Vector3(250, 0, -150),
 	"S1": Vector3(-200, 0, 120), "S2": Vector3(-50, 0, 120), "S3": Vector3(100, 0, 120), "S4": Vector3(250, 0, 120),
+	# Rive sud du Cher
 	"P": Vector3(100, 0, 240), "H": Vector3(180, 0, 240),
+	"Q1": Vector3(-150, 0, 240), "Q3": Vector3(350, 0, 240), "Q5": Vector3(620, 0, 240),
+	"Q1s": Vector3(-150, 0, 400), "Ps": Vector3(100, 0, 400), "Q3s": Vector3(350, 0, 400),
+	# Rocade et rond-point
+	"W": Vector3(-420, 0, 0), "Rn": Vector3(-420, 0, -300), "Rs": Vector3(-420, 0, 240),
+	"Rnn": Vector3(-420, 0, -620), "Rss": Vector3(-420, 0, 620),
+	# Zone d'activités (est)
+	"E1": Vector3(450, 0, 0), "E2": Vector3(650, 0, 0), "N5": Vector3(450, 0, -150), "E1s": Vector3(450, 0, 120),
+	# Nord : grands ensembles et pavillons
+	"M1": Vector3(-200, 0, -300), "M2": Vector3(-50, 0, -300), "M4": Vector3(250, 0, -300), "M5": Vector3(450, 0, -300), "M6": Vector3(620, 0, -300),
+	"T1": Vector3(-200, 0, -430), "T2": Vector3(-50, 0, -430), "T4": Vector3(250, 0, -430), "T5": Vector3(450, 0, -430), "T6": Vector3(620, 0, -430),
+	"V3": Vector3(350, 0, -150), "V3n": Vector3(350, 0, -430), "V6": Vector3(620, 0, -150),
+	# Destinations des interventions
 	"d_maison": Vector3(250, 0, -90),
 	"d_chute": Vector3(160, 0, 0),
 	"d_immeuble": Vector3(-50, 0, -95),
@@ -19,7 +33,49 @@ const ARETES: Array = [
 	["N1", "N2"], ["N2", "N3"], ["N3", "N4"],
 	["B1", "S1"], ["B2", "S2"], ["B3", "S3"], ["B4", "S4"], ["S1", "S2"], ["S2", "S3"], ["S3", "S4"],
 	["S3", "P"], ["P", "H"],
+	# Rive sud
+	["Q1", "P"], ["H", "Q3"], ["Q3", "Q5"], ["Q1", "Q1s"], ["P", "Ps"], ["Q3", "Q3s"], ["Q1s", "Ps"], ["Ps", "Q3s"], ["Rs", "Q1"],
+	# Rocade
+	["caserne", "W"], ["W", "Rn"], ["W", "Rs"], ["Rn", "Rnn"], ["Rs", "Rss"],
+	# Est
+	["B4", "E1"], ["E1", "E2"], ["E1", "N5"], ["N4", "V3"], ["V3", "N5"], ["N5", "V6"], ["E1", "E1s"], ["S4", "E1s"],
+	# Nord
+	["N1", "M1"], ["N2", "M2"], ["N4", "M4"], ["N5", "M5"], ["Rn", "M1"], ["M1", "M2"], ["M2", "M4"], ["M4", "M5"], ["M5", "M6"], ["V6", "M6"],
+	["M1", "T1"], ["M2", "T2"], ["M4", "T4"], ["M5", "T5"], ["M6", "T6"], ["T1", "T2"], ["T2", "T4"], ["T4", "V3n"], ["V3n", "T5"], ["T5", "T6"],
+	["V3", "V3n"],
 ]
+
+## Largeur des chaussées : boulevard 16 m, rocade 22 m, autres rues 10 m.
+static func largeur_arete(a: String, b: String) -> float:
+	var pa: Vector3 = NOEUDS[a]
+	var pb: Vector3 = NOEUDS[b]
+	if absf(pa.x + 420.0) < 1.0 and absf(pb.x + 420.0) < 1.0:
+		return 22.0
+	if absf(pa.z) < 1.0 and absf(pb.z) < 1.0:
+		return 16.0
+	return 10.0
+
+
+## Les quartiers de la ville (pour l'affichage du nom et la génération).
+const QUARTIERS: Array = [
+	["Centre ancien", Rect2(-330, -160, 660, 320)],
+	["Les Tilleuls (grands ensembles)", Rect2(-330, -450, 290, 290)],
+	["Les Vignes (pavillons)", Rect2(-40, -450, 680, 290)],
+	["Zone d'activités des Ormeaux", Rect2(330, -160, 340, 320)],
+	["Bords du Cher", Rect2(-700, 155, 1600, 65)],
+	["Rive sud", Rect2(-410, 220, 1080, 250)],
+	["Rocade", Rect2(-445, -650, 50, 1300)],
+	["Campagne", Rect2(-900, -650, 455, 1300)],
+]
+
+
+static func quartier_a(pos: Vector3) -> String:
+	for q in QUARTIERS:
+		var r: Rect2 = q[1]
+		if r.has_point(Vector2(pos.x, pos.z)):
+			return q[0]
+	return "Joué-lès-Tours"
+
 
 ## Noms de rues (fictifs).
 const NOM_BOULEVARD := "boulevard des Acacias"

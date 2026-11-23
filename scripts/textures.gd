@@ -187,6 +187,73 @@ static func tache(douceur: float) -> ImageTexture:
 	return tex
 
 
+## Façade d'immeuble des années 1970 : panneaux de béton, grande fenêtre, garde-corps de balcon.
+static func facade_hlm() -> ImageTexture:
+	if _textures.has("hlm"):
+		return _textures["hlm"]
+	var img := _bruit(192, 192, 0.05, 21)
+	_teinter(img, Color(0.86, 0.85, 0.82), Color(0.95, 0.94, 0.92), 0.02)
+	_rect(img, 0, 0, 192, 3, Color(0.6, 0.6, 0.6))
+	_rect(img, 0, 0, 3, 192, Color(0.7, 0.7, 0.7))
+	# Fenêtre
+	_rect(img, 36, 40, 120, 90, Color(0.92, 0.92, 0.92))
+	for y in range(46, 124):
+		_rect(img, 42, y, 108, 1, Color(0.3, 0.36, 0.42).lerp(Color(0.12, 0.14, 0.18), float(y - 46) / 78.0))
+	_rect(img, 94, 46, 4, 78, Color(0.92, 0.92, 0.92))
+	# Garde-corps de balcon (couleur)
+	_rect(img, 20, 130, 152, 40, Color(0.55, 0.35, 0.28))
+	for x in range(24, 170, 8):
+		_rect(img, x, 134, 2, 34, Color(0.45, 0.28, 0.22))
+	var tex := _finir(img)
+	_textures["hlm"] = tex
+	return tex
+
+
+## Bardage métallique ondulé (entrepôts, hangars).
+static func bardage() -> ImageTexture:
+	if _textures.has("bardage"):
+		return _textures["bardage"]
+	var img := Image.create(64, 64, false, Image.FORMAT_RGBA8)
+	for y in 64:
+		for x in 64:
+			var v: float = 0.82 + 0.12 * sin(x / 64.0 * TAU * 8.0)
+			img.set_pixel(x, y, Color(v, v, v))
+	var tex := _finir(img)
+	_textures["bardage"] = tex
+	return tex
+
+
+## Tuiles mécaniques (toits des pavillons).
+static func tuiles() -> ImageTexture:
+	if _textures.has("tuiles"):
+		return _textures["tuiles"]
+	var img := _bruit(64, 64, 0.1, 31)
+	_teinter(img, Color(0.62, 0.3, 0.2), Color(0.75, 0.4, 0.27), 0.03)
+	for y in range(0, 64, 8):
+		_rect(img, 0, y, 64, 2, Color(0.45, 0.2, 0.13))
+	for x in range(0, 64, 8):
+		_rect(img, x, 0, 1, 64, Color(0.52, 0.25, 0.16))
+	var tex := _finir(img)
+	_textures["tuiles"] = tex
+	return tex
+
+
+## Façade de pavillon : crépi clair, une fenêtre avec volets (travée 3 m × 2,8 m).
+static func crepi() -> ImageTexture:
+	if _textures.has("crepi"):
+		return _textures["crepi"]
+	var img := _bruit(128, 128, 0.15, 41)
+	_teinter(img, Color(0.9, 0.88, 0.83), Color(0.98, 0.97, 0.93), 0.04)
+	_rect(img, 48, 34, 32, 44, Color(0.95, 0.95, 0.95))
+	_rect(img, 51, 37, 26, 38, Color(0.2, 0.25, 0.3))
+	_rect(img, 63, 37, 2, 38, Color(0.95, 0.95, 0.95))
+	for vx in [34, 82]:
+		_rect(img, vx, 34, 12, 44, Color(0.55, 0.42, 0.3))
+	var tex := _finir(img)
+	_textures["crepi"] = tex
+	return tex
+
+
 # ---------------------------------------------------------------------------
 # Matériaux (avec mise en cache)
 # ---------------------------------------------------------------------------
