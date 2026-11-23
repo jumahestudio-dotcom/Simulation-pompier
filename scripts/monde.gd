@@ -9,6 +9,7 @@ const Quartiers = preload("res://scripts/quartiers.gd")
 const Details = preload("res://scripts/details.gd")
 const Lot = preload("res://scripts/lot.gd")
 const VoitureModele = preload("res://scripts/voiture_modele.gd")
+const Caserne = preload("res://scripts/caserne.gd")
 
 const TUFFEAU: Array = [Color(0.95, 0.91, 0.80), Color(0.90, 0.86, 0.75), Color(1.0, 0.97, 0.88), Color(0.86, 0.81, 0.70)]
 const ARDOISE := Color(0.27, 0.30, 0.35)
@@ -284,7 +285,7 @@ static func _caserne(racine: Node3D) -> void:
 		Geo.boite(racine, Vector3(4.0, 0.02, 0.4), Vector3(px, 0.13, -11.0), Color(0.95, 0.8, 0.1), false)
 	# Éclairage de la remise : tubes néon au plafond
 	for nx in [-270.0, -250.0, -230.0]:
-		for nz in [-24.0, -42.0, -60.0]:
+		for nz in [-20.0, -33.0, -46.0]:
 			Geo.boite_mat(racine, Vector3(0.25, 0.08, 4.0), Vector3(nx, 6.85, nz), Tex.emissif(Color(1.0, 0.98, 0.92), 2.0), false)
 			var lum := OmniLight3D.new()
 			lum.position = Vector3(nx, 6.2, nz)
@@ -292,23 +293,13 @@ static func _caserne(racine: Node3D) -> void:
 			lum.light_energy = 0.9
 			lum.light_color = Color(1.0, 0.97, 0.9)
 			racine.add_child(lum)
-	# Tour de séchage des tuyaux
-	Geo.boite_mat(racine, Vector3(4, 16, 4), Vector3(-219, 8, -66), bet)
-	Geo.boite(racine, Vector3(4.3, 0.6, 4.3), Vector3(-219, 16.2, -66), rouge, false)
 	Geo.boite(racine, Vector3(70.6, 0.5, 56.6), Vector3(-250, 7.2, -42), Color(0.45, 0.45, 0.45))
 	Geo.boite(racine, Vector3(70.6, 0.8, 0.3), Vector3(-250, 6.0, -13.7), rouge, false)
 	var enseigne: Label3D = Geo.texte(racine, "CENTRE DE SECOURS DE JOUÉ-LÈS-TOURS", Vector3(-250, 5.3, -13.5), 90, Color.WHITE, false)
 	enseigne.outline_size = 12
 	Geo.texte(racine, "SDIS fictif de Touraine", Vector3(-250, 8.6, -14), 60, Color(1, 0.85, 0.8))
-	# Cloison entre la remise et le vestiaire / salle de garde
-	Geo.mur(racine, "x", -54.0, -285.0, -215.0, 0.0, 3.2, 0.2, Color(0.9, 0.88, 0.82), [[-276.0, 2.0, 0.0, 2.2], [-250.0, 2.0, 0.0, 2.2], [-224.0, 2.0, 0.0, 2.2]])
-	# Vestiaire : casiers
-	for i in 8:
-		Geo.boite(racine, Vector3(1.0, 2.0, 0.6), Vector3(-284.0 + 0.5 + i * 1.05, 1.0, -69.4), Color(0.35, 0.45, 0.6))
-	Geo.texte(racine, "VESTIAIRE", Vector3(-276, 2.8, -66), 48, Color(1, 1, 0.7))
-	# Salle de garde : table et chaises
-	Geo.boite(racine, Vector3(4, 0.9, 1.6), Vector3(-238, 0.45, -62), Color(0.5, 0.35, 0.2))
-	Geo.texte(racine, "SALLE DE GARDE", Vector3(-238, 2.8, -66), 40, Color(1, 1, 0.7))
+	# Pièces de vie, rangements, cour, tour de manœuvre et parking du personnel
+	Caserne.construire(racine)
 	# Places de stationnement des engins
 	Geo.boite(racine, Vector3(3.6, 0.02, 9.5), Carte.PARKING_VSAV + Vector3(0, 0.12, 0), Color(0.9, 0.8, 0.2, 0.5), false)
 	Geo.boite(racine, Vector3(3.6, 0.02, 9.5), Carte.PARKING_FPT + Vector3(0, 0.12, 0), Color(0.9, 0.8, 0.2, 0.5), false)
