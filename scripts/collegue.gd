@@ -1,4 +1,5 @@
-## Un collègue sapeur-pompier géré par l'IA (corps articulé en tenue F1 ou tenue de feu, voir corps.gd).
+## Un collègue sapeur-pompier géré par l'IA : modèle 3D de Sellier (pompier3d.gd) ou, à défaut,
+## corps articulé en tenue F1 ou tenue de feu (corps.gd).
 ## Il a un grade, un rôle, un trait de caractère, de la fatigue, du stress,
 ## et un avis sur le joueur (confiance).
 extends Node3D
@@ -6,6 +7,7 @@ extends Node3D
 const Geo = preload("res://scripts/geo.gd")
 const Tex = preload("res://scripts/textures.gd")
 const Corps = preload("res://scripts/corps.gd")
+const Pompier3D = preload("res://scripts/pompier3d.gd")
 
 var nom := ""
 var grade := ""
@@ -33,9 +35,11 @@ func construire(p_nom: String, p_grade: String, p_role: String, tenue_feu: bool)
 	role = p_role
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(p_nom)
-	corps = Corps.new()
+	var tenue: Dictionary = Corps.tenue_pompier(rng, "feu" if tenue_feu else "f1")
+	# Le vrai pompier 3D (modèle de Sellier) s'il est dans modeles/, sinon le corps dessiné en code.
+	corps = Pompier3D.new() if Pompier3D.disponible() else Corps.new()
 	add_child(corps)
-	corps.construire(Corps.tenue_pompier(rng, "feu" if tenue_feu else "f1"))
+	corps.construire(tenue)
 	corps.equiper(tenue_feu, false)
 	_etiquette = Geo.texte(self, "%s %s\n%s" % [grade, nom, role], Vector3(0, 2.3, 0), 28, Color(1, 1, 0.8))
 

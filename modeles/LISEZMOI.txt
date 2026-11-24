@@ -45,3 +45,6 @@ Reçus mais pas utilisés (pour l'instant) :
   firefighter.glb, firefighter_in_turnout_gear.glb   gardés pour l'étape des personnages
   european_buildings_asset_pack_3.glb, abandoned_factory_modular_kit.glb   à assembler plus tard
   fire_hydrant_scan_no._1.glb            poteau ouvert et cassé, gardé pour une intervention
+  firefighter.glb                        les collègues pompiers (squelette animé par le jeu : marche,
+                                         casque et appareil respiratoire selon la tenue)
+  firefighter_in_turnout_gear.glb        sapeur de garde debout au bureau du standard (modèle immobile)

@@ -335,6 +335,8 @@ static func _bureau(racine: Node3D) -> void:
 	Lot.boite(Vector3(0.12, 0.05, 0.005), Vector3(-232.2, 0.87, -60.07), Tex.emissif(Color(0.3, 1.0, 0.4), 1.0))
 	Lot.boite_c(Vector3(0.2, 0.06, 0.22), Vector3(-232.2, 0.8, -59.3), Color(0.1, 0.1, 0.1))
 	_chaise(Vector3(-229.0, 0, -60.6), PI, Color(0.12, 0.12, 0.14))
+	# Sapeur de garde au standard, debout devant l'imprimante (modèle scanné de Sellier, immobile)
+	Modeles.objet(racine, "firefighter_in_turnout_gear.glb", Vector3(-226.6, 0, -60.55), PI, 1.68, {"solide": true})
 	# Imprimante des tickets de départ
 	_meuble(racine, Vector3(0.6, 0.9, 0.5), Vector3(-226.6, 0.45, -61.4), Color(0.85, 0.85, 0.85))
 	Lot.boite_c(Vector3(0.45, 0.2, 0.4), Vector3(-226.6, 1.0, -61.4), Color(0.25, 0.25, 0.27))
