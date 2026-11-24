@@ -110,7 +110,7 @@ func _ready() -> void:
 		v.sens = 1.0 if i % 2 == 0 else -1.0
 		v.monde = self
 		add_child(v)
-		v.construire(couleurs[i % couleurs.size()])
+		v.construire(couleurs[i % couleurs.size()], i)
 		v.placer(-390.0 + i * 85.0)
 		voitures.append(v)
 	for i in 10:
@@ -126,7 +126,7 @@ func _ready() -> void:
 		v.ronds_points = [-300.0, 0.0, 240.0]
 		v.monde = self
 		add_child(v)
-		v.construire(couleurs[(i + 3) % couleurs.size()])
+		v.construire(couleurs[(i + 3) % couleurs.size()], i + 1)
 		v.placer(-580.0 + i * 120.0)
 		voitures.append(v)
 	_creer_pietons()

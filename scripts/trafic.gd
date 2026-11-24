@@ -4,6 +4,7 @@ extends Node3D
 
 const Geo = preload("res://scripts/geo.gd")
 const VoitureModele = preload("res://scripts/voiture_modele.gd")
+const Modeles = preload("res://scripts/modeles3d.gd")
 
 var sens := 1.0          # +1 vers l'est (ou le sud sur un axe nord-sud), -1 dans l'autre sens
 var vitesse := 11.0
@@ -21,9 +22,13 @@ var _decalage := 0.0
 var _a := 0.0       # position le long de la route
 
 
-func construire(couleur: Color) -> void:
-	var types: Array = VoitureModele.TYPES
-	VoitureModele.instancier(self, types[absi(hash(couleur) + get_instance_id()) % types.size()], couleur)
+func construire(couleur: Color, n: int = 0) -> void:
+	# Modèles de Sellier (Polo, T-Cross) en alternance ; voitures dessinées en code s'ils manquent.
+	var modeles: Array = Modeles.VOITURES_TRAFIC.keys()
+	if Modeles.voiture_trafic(self, modeles[n % modeles.size()], couleur) == null \
+			and Modeles.voiture_trafic(self, modeles[(n + 1) % modeles.size()], couleur) == null:
+		var types: Array = VoitureModele.TYPES
+		VoitureModele.instancier(self, types[absi(hash(couleur) + get_instance_id()) % types.size()], couleur)
 	_orienter()
 
 

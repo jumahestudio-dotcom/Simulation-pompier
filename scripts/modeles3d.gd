@@ -31,6 +31,19 @@ const VOITURES := {
 	"kodiaq": {"f": "skoda_kodiaq_2024.glb", "peinture": "e_Carpaint", "mats": ["lICENSE", "e_chrome_Unique_Dark", "Texts_Texture", "text_ui"], "noeuds": []},
 	"octavia": {"f": "skoda_octavia_combi_2024.glb", "peinture": "e_Carpaint", "mats": ["Material.006", "E_Chrome.011", "Texts_Texture", "text_ui"], "noeuds": ["Object_47"]},
 }
+## Voitures du trafic, fusionnées en un seul maillage. "ecarter" : matériaux supprimés (pièces
+## intérieures invisibles) ; "retouches" : plaques et logos peints dans les textures, effacés.
+## "rot" : rotation pour mettre l'avant vers -z.
+const VOITURES_TRAFIC := {
+	"polo": {"f": "2021_volkswagen_polo_plus.glb", "peinture": "carpaint_C1", "rot": PI,
+		"noeuds": ["09_car_body_black_plastic_plaslic_SH_0", "10_car_body_metal_chrome_0", "57_trunk_metal_chrome_0", "58_trunk_plus_metal_chrome_0", "58_trunk_plus_plastic_plastic_0", "56_trunk_black_plastic_plastic_0"],
+		"ecarter": ["breaks", "plaslic_SH", "tapete", "inner_door", "mirror"],
+		"retouches": {"BAD_L": [[Rect2(0.0, 0.0, 0.595, 0.44), Color(0.9, 0.9, 0.88)]]}},
+	"tcross": {"f": "2021_volkswagen_t-cross_280_tsi.glb", "peinture": "carpaint", "rot": PI,
+		"noeuds": ["15_car_body_metal_chrome_0", "85_trunk_metal_chrome_0", "86_trunk_metal_chrome_0"],
+		"ecarter": ["breaks", "carpet", "trunk", "inner_door", "mirror"],
+		"retouches": {"BADG": [[Rect2(0.0, 0.0, 0.545, 0.3), Color(0.9, 0.9, 0.88)], [Rect2(0.612, 0.47, 0.098, 0.1), Color(0.05, 0.05, 0.06)]]}},
+}
 ## Fichiers qui reçoivent des niveaux de détail au chargement.
 const LOD := ["skoda_kodiaq_2024.glb", "skoda_octavia_combi_2024.glb"]
 const ANGLE := {"f": "bordeaux_flat_2_corner_france.glb", "x0": -11.5, "x1": 15.3, "zf": 7.3, "zb": -3.9, "h": 18.6, "angle": true}
@@ -229,3 +242,173 @@ static func voiture(racine: Node3D, type: String, pos: Vector3, angle: float, co
 		if caches == nb:
 			m.visible = false
 	return inst
+
+
+# ---------------------------------------------------------------------------
+# Modèles fusionnés : tout le fichier devient un seul maillage (une surface par matériau),
+# avec niveaux de détail. Beaucoup plus léger à afficher qu'une scène de centaines de nœuds.
+# ---------------------------------------------------------------------------
+
+static var _fusions := {}
+
+
+## "ecarter" : débuts de noms de matériaux à supprimer (intérieur invisible, logos...).
+## "noeuds" : noms exacts de pièces à supprimer (logos en relief, inscriptions).
+## "retouches" : {début de nom de matériau: [Rect2 en fraction de texture, couleur]} pour effacer
+## une inscription ou un logo peint dans la texture.
+## Renvoie {"mesh": Mesh, "aabb": AABB, "mats": [noms des matériaux, dans l'ordre des surfaces]} ou {}.
+static func fusion(nom: String, garder: String = "", ecarter: Array = [], retouches: Dictionary = {}, noeuds: Array = [], lod: bool = true) -> Dictionary:
+	var cle := nom + "|" + garder + "|" + str(ecarter) + str(noeuds)
+	if _fusions.has(cle):
+		return _fusions[cle]
+	var res := {}
+	var o := instance(nom, garder)
+	if o != null:
+		var outils := {}     # nom de matériau -> SurfaceTool
+		var mats := {}
+		for mi in o.find_children("*", "MeshInstance3D", true, false):
+			var m: MeshInstance3D = mi
+			if not m.visible or m.mesh == null or str(m.name) in noeuds:
+				continue
+			var t := Transform3D.IDENTITY
+			var x: Node = m
+			while x != o and x != null:
+				t = (x as Node3D).transform * t
+				x = x.get_parent()
+			for s in m.mesh.get_surface_count():
+				if m.mesh.surface_get_primitive_type(s) != Mesh.PRIMITIVE_TRIANGLES:
+					continue
+				var mat := m.mesh.surface_get_material(s)
+				var mn := mat.resource_name if mat != null else "_"
+				var refuse := false
+				for e in ecarter:
+					if mn.begins_with(e):
+						refuse = true
+						break
+				if refuse:
+					continue
+				if not outils.has(mn):
+					var st := SurfaceTool.new()
+					outils[mn] = st
+					mats[mn] = _retouche(mat, mn, retouches)
+				(outils[mn] as SurfaceTool).append_from(m.mesh, s, t)
+		var im := ImporterMesh.new()
+		var noms: Array = []
+		for mn in outils:
+			var st: SurfaceTool = outils[mn]
+			st.index()
+			var arr := st.commit_to_arrays()
+			if arr[Mesh.ARRAY_NORMAL] == null:
+				continue
+			# Données d'animation et canaux personnalisés inutiles pour un objet fixe
+			for k in [Mesh.ARRAY_CUSTOM0, Mesh.ARRAY_CUSTOM1, Mesh.ARRAY_CUSTOM2, Mesh.ARRAY_CUSTOM3, Mesh.ARRAY_BONES, Mesh.ARRAY_WEIGHTS]:
+				arr[k] = null
+			im.add_surface(Mesh.PRIMITIVE_TRIANGLES, arr, [], {}, mats[mn], mn)
+			noms.append(mn)
+		if lod:
+			im.generate_lods(25.0, 60.0, [])
+		var mesh := im.get_mesh()
+		res = {"mesh": mesh, "aabb": mesh.get_aabb(), "mats": noms}
+		o.free()
+	_fusions[cle] = res
+	return res
+
+
+static func _retouche(mat: Material, mn: String, retouches: Dictionary) -> Material:
+	for debut in retouches:
+		if not mn.begins_with(debut) or not (mat is StandardMaterial3D):
+			continue
+		var sm: StandardMaterial3D = (mat as StandardMaterial3D).duplicate()
+		sm.albedo_texture = _peindre(sm.albedo_texture, retouches[debut], false)
+		# Les inscriptions sont souvent aussi dans la texture lumineuse (émission) : on les éteint.
+		if sm.emission_enabled and sm.emission_texture != null:
+			sm.emission_texture = _peindre(sm.emission_texture, retouches[debut], true)
+		return sm
+	return mat
+
+
+static func _peindre(tex: Texture2D, zones: Array, noir: bool) -> Texture2D:
+	if tex == null:
+		return tex
+	var img := tex.get_image()
+	if img == null:
+		push_warning("Retouche impossible")
+		return tex
+	img = img.duplicate()
+	if img.is_compressed():
+		img.decompress()
+	img.clear_mipmaps()
+	img.convert(Image.FORMAT_RGBA8)
+	var w := img.get_width()
+	var h := img.get_height()
+	for zone in zones:
+		var r: Rect2 = zone[0]
+		img.fill_rect(Rect2i(int(r.position.x * w), int(r.position.y * h), int(r.size.x * w), int(r.size.y * h)), Color.BLACK if noir else zone[1])
+	img.generate_mipmaps()
+	return ImageTexture.create_from_image(img)
+
+
+## Instance d'un modèle fusionné posée au sol, centrée sur "pos". Renvoie le MeshInstance3D ou null.
+static func poser_fusion(racine: Node3D, f: Dictionary, pos: Vector3, rot_y: float, s: float = 1.0) -> MeshInstance3D:
+	if f.is_empty():
+		return null
+	var bb: AABB = f["aabb"]
+	var mi := MeshInstance3D.new()
+	mi.mesh = f["mesh"]
+	var b := Basis(Vector3.UP, rot_y) * Basis.from_scale(Vector3.ONE * s)
+	var c := bb.get_center()
+	mi.transform = Transform3D(b, pos - b * Vector3(c.x, bb.position.y, c.z))
+	racine.add_child(mi)
+	return mi
+
+
+static var _peintures := {}
+
+
+## Voiture du trafic (modèle de Sellier fusionné), avant vers -z, roues à y = 0. null si le fichier manque.
+static func voiture_trafic(parent: Node3D, type: String, couleur: Color) -> Node3D:
+	var v: Dictionary = VOITURES_TRAFIC[type]
+	if not present(v["f"]):
+		return null
+	var f := fusion(v["f"], "", v["ecarter"], v["retouches"], v["noeuds"])
+	var mi := poser_fusion(parent, f, Vector3.ZERO, v["rot"])
+	if mi == null:
+		return null
+	var i: int = (f["mats"] as Array).find(v["peinture"])
+	if i >= 0:
+		var cle := type + str(couleur)
+		if not _peintures.has(cle):
+			var base := mi.mesh.surface_get_material(i)
+			var p: StandardMaterial3D = base.duplicate() if base is StandardMaterial3D else StandardMaterial3D.new()
+			p.albedo_color = couleur
+			p.albedo_texture = null
+			p.metallic = 0.35
+			p.roughness = 0.32
+			_peintures[cle] = p
+		mi.set_surface_override_material(i, _peintures[cle])
+	return mi
+
+
+## Pose un objet fusionné à la hauteur voulue (en mètres), centré sur "pos", posé au sol.
+## Options : "garder", "ecarter", "noeuds", "retouches", "solide" (boîte de collision), "echelle" (au lieu de la hauteur).
+static func objet(racine: Node3D, nom: String, pos: Vector3, rot_y: float, hauteur: float, opt: Dictionary = {}) -> MeshInstance3D:
+	if not present(nom):
+		return null
+	var f := fusion(nom, opt.get("garder", ""), opt.get("ecarter", []), opt.get("retouches", {}), opt.get("noeuds", []))
+	if f.is_empty():
+		return null
+	var bb: AABB = f["aabb"]
+	var s: float = opt.get("echelle", hauteur / maxf(bb.size.y, 0.0001))
+	var mi := poser_fusion(racine, f, pos, rot_y, s)
+	if opt.get("ombre", true) == false:
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	if opt.get("solide", false):
+		var corps := StaticBody3D.new()
+		corps.transform = Transform3D(Basis(Vector3.UP, rot_y), pos + Vector3(0, bb.size.y * s * 0.5, 0))
+		var cs := CollisionShape3D.new()
+		var forme := BoxShape3D.new()
+		forme.size = bb.size * s * float(opt.get("marge", 0.9))
+		cs.shape = forme
+		corps.add_child(cs)
+		racine.add_child(corps)
+	return mi

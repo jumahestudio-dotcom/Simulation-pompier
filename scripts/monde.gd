@@ -13,6 +13,7 @@ const Caserne = preload("res://scripts/caserne.gd")
 const Modeles = preload("res://scripts/modeles3d.gd")
 const Verdure = preload("res://scripts/verdure.gd")
 const Agrement = preload("res://scripts/agrement.gd")
+const DecorModeles = preload("res://scripts/decor_modeles.gd")
 
 const TUFFEAU: Array = [Color(0.95, 0.91, 0.80), Color(0.90, 0.86, 0.75), Color(1.0, 0.97, 0.88), Color(0.86, 0.81, 0.70)]
 const ARDOISE := Color(0.27, 0.30, 0.35)
@@ -93,6 +94,7 @@ static func construire(racine: Node3D) -> void:
 	Details.mobilier_centre(racine, rng)
 	Details.mobilier_plus(racine)
 	Agrement.construire(racine)
+	DecorModeles.construire(racine)
 	_voitures_garees(racine, rng)
 	Quartiers.construire(racine)
 	_caserne(racine)

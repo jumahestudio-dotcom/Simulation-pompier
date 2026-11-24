@@ -36,11 +36,30 @@ func _ready() -> void:
 			["v14_rocade", Vector3(-406, 3.0, 62), Vector3(-420, 1.0, 0)],
 			["v15_cher", Vector3(-150, 3.0, 154), Vector3(-90, 0, 168)],
 			["v16_parking", Vector3(-140, 6, -158), Vector3(-125, 0, -182)],
-			["v17_facades", Vector3(-110, 1.8, -2), Vector3(-80, 6, -14)]]:
+			["v17_facades", Vector3(-110, 1.8, -2), Vector3(-80, 6, -14)],
+			["v18_trafic", Vector3(-150, 1.6, -3.5), Vector3(-120, 0.8, 3)],
+			["v19_trafic_rocade", Vector3(-411, 1.8, -150), Vector3(-420, 0.8, -100)],
+			["v20_kiosque", Vector3(-38, 2.0, 306), Vector3(-46, 1.3, 296)],
+			["v21_square_erables", Vector3(-10, 4, 330), Vector3(-40, 3, 285)],
+			["v22_tilleuls_bosquet", Vector3(-100, 4, -240), Vector3(-128, 3, -222)],
+			["v23_coffret", Vector3(-186, 1.7, -244), Vector3(-192.5, 0.8, -250)],
+			["v24_chantier", Vector3(519, 6, -6), Vector3(519, 0.5, 21)],
+			["v25_entrepot", Vector3(390, 4, 60), Vector3(371.5, 2, 83)],
+			["v26_vtu", Vector3(-232, 2.2, -70), Vector3(-240, 1, -75.5)],
+			["v27_remise_sacs", Vector3(-266, 1.7, -42), Vector3(-268.3, 0.4, -45)],
+			["v28_remise_tuyaux", Vector3(-219, 1.6, -31.5), Vector3(-215.8, 0.4, -29.5)]]:
 		if args.size() > 1 and not args[1].split(",").has(String(v[0]).get_slice("_", 0)):
 			continue
 		cam.global_position = v[1]
 		cam.look_at(v[2])
+		if String(v[0]).begins_with("v18") or String(v[0]).begins_with("v19"):
+			# Vue sur une voiture du trafic, arrêtée le temps de la photo
+			for c in main.voitures:
+				c.set_process(false)
+			var auto: Node3D = main.voitures[2 if String(v[0]).begins_with("v18") else 13]
+			var av := -auto.global_basis.z
+			cam.global_position = auto.global_position + av * 6.0 + auto.global_basis.x * 3.5 + Vector3(0, 1.6, 0)
+			cam.look_at(auto.global_position + Vector3(0, 0.7, 0))
 		await _attendre(0.6)
 		await _photo(v[0])
 	get_tree().quit()
