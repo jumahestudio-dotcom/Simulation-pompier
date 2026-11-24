@@ -106,7 +106,10 @@ static func _ecriteau(racine: Node3D, texte: String, pos: Vector3, rot: float, f
 	t.basis = b
 
 
-static func _extincteur(pos: Vector3) -> void:
+static func _extincteur(pos: Vector3, racine: Node3D = null) -> void:
+	# Modèle d'extincteur de Sellier s'il est là, sinon cylindre rouge
+	if racine != null and Modeles.objet(racine, "modern_fire_extinguisher.glb", pos, 0.0, 0.62) != null:
+		return
 	Lot.cylindre(0.09, 0.5, pos + Vector3(0, 0.35, 0), Geo.mat(ROUGE))
 	Lot.boite_c(Vector3(0.06, 0.08, 0.06), pos + Vector3(0, 0.64, 0), Color(0.12, 0.12, 0.12))
 
@@ -613,7 +616,7 @@ static func _remise(racine: Node3D) -> void:
 	ecran.outline_size = 0
 	# Extincteurs le long des murs
 	for p in [Vector3(-284.6, 0, -30.0), Vector3(-284.6, 0, -50.0), Vector3(-215.45, 0, -24.0), Vector3(-270.0, 0, -14.4), Vector3(-230.0, 0, -14.4), Vector3(-252.0, 0, -53.75)]:
-		_extincteur(p)
+		_extincteur(p, racine)
 	# Poste de lavage : bac, tuyau d'arrosage enroulé
 	Lot.boite_c(Vector3(1.4, 0.9, 0.6), Vector3(-232.0, 0.45, -53.6), Color(0.6, 0.62, 0.64))
 	Lot.cylindre(0.3, 0.12, Vector3(-230.6, 1.3, -53.86), Geo.mat(Color(0.2, 0.5, 0.25)), Basis(Vector3.RIGHT, PI * 0.5))

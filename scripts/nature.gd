@@ -7,6 +7,8 @@ const Geo = preload("res://scripts/geo.gd")
 const Tex = preload("res://scripts/textures.gd")
 const Lot = preload("res://scripts/lot.gd")
 const Modeles = preload("res://scripts/modeles3d.gd")
+const Verdure = preload("res://scripts/verdure.gd")
+const Details = preload("res://scripts/details.gd")
 
 const BOIS := Color(0.48, 0.34, 0.2)
 const GRILLAGE := Color(0.22, 0.35, 0.25)
@@ -46,6 +48,16 @@ static func construire(racine: Node3D) -> void:
 		var pa := Vector3(rng.randf_range(-320, -70), 0, rng.randf_range(-440, -165))
 		if _libre_ge(pa):
 			Lot.arbre_feuillu(pa, rng.randf_range(0.8, 1.2), _feuillage(rng), Lot.couleur(Color(0.42, 0.33, 0.24)))
+	# Plus de verdure aux Tilleuls : arbres feuillus et massifs d'arbustes entre les immeubles
+	var rv := Details.rv()
+	for k in 70:
+		var pa := Vector3(rv.randf_range(-320, -70), 0, rv.randf_range(-440, -165))
+		if _libre_ge(pa):
+			if k % 3 == 0:
+				for i in rv.randi_range(2, 4):
+					Details.arbuste(pa + Vector3(rv.randf_range(-2.0, 2.0), 0, rv.randf_range(-2.0, 2.0)), rv.randf_range(1.0, 2.2), rv)
+			else:
+				Details.arbre(pa, rv.randf_range(0.8, 1.25), rv)
 	# Prés clôturés avec des vaches, à l'ouest de la rocade, et bosquets dans la campagne
 	_pres(racine, rng)
 	var rng_ferme := RandomNumberGenerator.new()
@@ -240,7 +252,7 @@ static func _square(racine: Node3D, rng: RandomNumberGenerator, r: Rect2) -> voi
 	for q in [Vector3(18, 0, 18), Vector3(-18, 0, 18), Vector3(18, 0, -18), Vector3(-18, 0, -18)]:
 		Lot.boite_c(Vector3(10, 0.3, 6), ce + q + Vector3(0, 0.15, 0), Color(0.35, 0.25, 0.18))
 		for k in 12:
-			Lot.sphere(0.4, ce + q + Vector3(-4.2 + (k % 6) * 1.7, 0.4, -1.4 + int(k / 6) * 2.8), Lot.couleur(fleurs[k % 4]), 0.6)
+			Details.arbuste(ce + q + Vector3(-4.2 + (k % 6) * 1.7, 0.3, -1.4 + int(k / 6) * 2.8), 0.75, Details.rv(), fleurs[k % 4].lightened(0.25))
 		# Massif végétal scanné au bout de chaque parterre
 		Modeles.poser(racine, Modeles.PLANTES, ce + q + Vector3(0, 0.25, 0), rng.randf() * TAU, 0.45, "Plants*#%d" % (9 + rng.randi() % 6), false)
 	# Bancs le long des allées et arbres
@@ -255,7 +267,20 @@ static func _square(racine: Node3D, rng: RandomNumberGenerator, r: Rect2) -> voi
 		if absf(p.x - ce.x) > 5.0 and absf(p.z - ce.z) > 5.0 and p.distance_to(ce) > 12.0 and p.distance_to(k0) > 8.0:
 			var arbre: String = "Tree 1" if k % 2 == 0 else "Tree 2"
 			if k % 3 == 0 or Modeles.poser(racine, Modeles.ARBRE, p, rng.randf() * TAU, rng.randf_range(1.0, 1.4), arbre, false) == null:
-				Lot.arbre_feuillu(p, rng.randf_range(0.9, 1.3), _feuillage(rng), Lot.couleur(Color(0.42, 0.33, 0.24)))
+				var tt := rng.randf_range(0.9, 1.3)
+				_feuillage(rng)
+				Details.arbre(p, tt, Details.rv())
+	# Herbe haute et fleurs sur les pelouses (hors allées et bassin)
+	Verdure.exclure(Rect2(c.x - r.size.x * 0.5, c.y - 2.5, r.size.x, 5.0))
+	Verdure.exclure(Rect2(c.x - 2.5, c.y - r.size.y * 0.5, 5.0, r.size.y))
+	Verdure.exclure(Rect2(c.x - 9.5, c.y - 9.5, 19.0, 19.0))
+	Verdure.exclure(Rect2(k0.x - 5.5, k0.z - 5.5, 11.0, 11.0))
+	Verdure.pelouse(r.grow(-1.0), 0.7, 0.12)
+	var rv := Details.rv()
+	for k in 14:
+		var pa := ce + Vector3(rv.randf_range(-r.size.x * 0.47, r.size.x * 0.47), 0, rv.randf_range(-r.size.y * 0.47, r.size.y * 0.47))
+		if absf(pa.x - ce.x) > 3.5 and absf(pa.z - ce.z) > 3.5 and pa.distance_to(ce) > 11.0:
+			Details.arbuste(pa, rv.randf_range(1.0, 1.8), rv)
 	var t := Geo.texte(racine, "Square de la Mairie", ce + Vector3(0, 2.4, r.size.y * 0.5 + 0.1), 40, Color(0.95, 0.95, 0.9), false)
 	t.outline_size = 6
 
@@ -384,7 +409,8 @@ static func _pres(racine: Node3D, rng: RandomNumberGenerator) -> void:
 	for r in [Rect2(-760, -40, 110, 90), Rect2(-610, 260, 120, 100), Rect2(-780, -330, 100, 110)]:
 		var rr: Rect2 = r
 		var c := rr.get_center()
-		Lot.boite_c(Vector3(rr.size.x, 0.04, rr.size.y), Vector3(c.x, 0.08, c.y), Color(0.42, 0.6, 0.28))
+		Lot.boite(Vector3(rr.size.x, 0.04, rr.size.y), Vector3(c.x, 0.08, c.y), Tex.mat_herbe())
+		Verdure.pelouse(rr, 0.3, 0.1, 0.1, 1.5)
 		var x := rr.position.x
 		while x <= rr.end.x:
 			for zz in [rr.position.y, rr.end.y]:

@@ -11,6 +11,9 @@ const Lot = preload("res://scripts/lot.gd")
 const VoitureModele = preload("res://scripts/voiture_modele.gd")
 const Caserne = preload("res://scripts/caserne.gd")
 const Modeles = preload("res://scripts/modeles3d.gd")
+const Verdure = preload("res://scripts/verdure.gd")
+const Agrement = preload("res://scripts/agrement.gd")
+const DecorModeles = preload("res://scripts/decor_modeles.gd")
 
 const TUFFEAU: Array = [Color(0.95, 0.91, 0.80), Color(0.90, 0.86, 0.75), Color(1.0, 0.97, 0.88), Color(0.86, 0.81, 0.70)]
 const ARDOISE := Color(0.27, 0.30, 0.35)
@@ -31,7 +34,7 @@ static func construire(racine: Node3D) -> void:
 	rng.seed = 37  # toujours la même ville
 	# Sol (herbe partout, trottoirs pavés dans le centre)
 	Geo.boite_mat(racine, Vector3(4400, 1, 4000), Vector3(100, -0.5, 0), Tex.mat_herbe())
-	Geo.boite_mat(racine, Vector3(660, 0.04, 320), Vector3(0, 0.02, -2), Tex.mat_paves(), false)
+	Geo.boite_mat(racine, Vector3(660, 0.04, 320), Vector3(0, 0.02, -2), Tex.mat_dalles(), false)
 	# Toutes les rues, tracées à partir du plan (carte.gd)
 	_routes(racine)
 	for x in [-200.0, -50.0, 100.0, 250.0]:
@@ -89,6 +92,9 @@ static func construire(racine: Node3D) -> void:
 		for bz in [[-145.0, -8.0], [8.0, 115.0]]:
 			_coeur_ilot(racine, rng, Rect2(bx[0] + 26.0, bz[0] + 26.0, bx[1] - bx[0] - 52.0, bz[1] - bz[0] - 52.0))
 	Details.mobilier_centre(racine, rng)
+	Details.mobilier_plus(racine)
+	Agrement.construire(racine)
+	DecorModeles.construire(racine)
 	_voitures_garees(racine, rng)
 	Quartiers.construire(racine)
 	_caserne(racine)
@@ -102,8 +108,9 @@ static func construire(racine: Node3D) -> void:
 	Geo.texte(racine, Carte.NOM_BOULEVARD, Vector3(40, 4, -9), 56, Color(0.8, 0.9, 1.0))
 	Geo.texte(racine, Carte.NOM_RUE_EST, Vector3(244, 4, -40), 56, Color(0.8, 0.9, 1.0))
 	Geo.texte(racine, Carte.NOM_RUE_OUEST, Vector3(-56, 4, -40), 56, Color(0.8, 0.9, 1.0))
-	# Tous les petits détails regroupés en quelques gros maillages
+	# Tous les petits détails regroupés en quelques gros maillages, puis l'herbe haute
 	Lot.finir(racine)
+	Verdure.finir(racine)
 
 
 ## Une rangée d'immeubles qui donne sur une rue. "bord" : z du bord de la chaussée.
@@ -213,19 +220,65 @@ static func _coeur_ilot(racine: Node3D, rng: RandomNumberGenerator, r: Rect2) ->
 	# Murets de séparation des jardins
 	var x := r.position.x + rng.randf_range(12.0, 20.0)
 	while x < r.end.x - 8.0:
-		Geo.boite(racine, Vector3(0.4, 1.8, r.size.y), Vector3(x, 0.9, c.y), Color(0.82, 0.78, 0.68), false)
+		Geo.boite_mat(racine, Vector3(0.4, 1.8, r.size.y), Vector3(x, 0.9, c.y), _mat_muret(), false)
+		Lot.boite(Vector3(0.5, 0.08, r.size.y), Vector3(x, 1.84, c.y), Lot.couleur(Color(0.78, 0.75, 0.68)))
 		x += rng.randf_range(14.0, 22.0)
-	Geo.boite(racine, Vector3(r.size.x, 1.8, 0.4), Vector3(c.x, 0.9, c.y), Color(0.82, 0.78, 0.68), false)
+	Geo.boite_mat(racine, Vector3(r.size.x, 1.8, 0.4), Vector3(c.x, 0.9, c.y), _mat_muret(), false)
+	Lot.boite(Vector3(r.size.x, 0.08, 0.5), Vector3(c.x, 1.84, c.y), Lot.couleur(Color(0.78, 0.75, 0.68)))
 	# Arbres
 	for k in int(r.size.x * r.size.y / 500.0):
 		var p := Vector3(rng.randf_range(r.position.x + 3.0, r.end.x - 3.0), 0, rng.randf_range(r.position.y + 3.0, r.end.y - 3.0))
 		Details.arbre(p, rng.randf_range(0.8, 1.3), rng)
+	# Arbustes le long des murets, herbe haute dans les jardins
+	var rv := Details.rv()
+	_lierre(Vector3(c.x, 0, c.y), r.size.x, true, rv)
+	for k in int(r.size.x / 2.5):
+		var pa := Vector3(rv.randf_range(r.position.x + 1.5, r.end.x - 1.5), 0.08, c.y + (1.2 if k % 2 == 0 else -1.2))
+		Details.arbuste(pa, rv.randf_range(0.9, 1.9), rv)
+	# Fonds de jardins : massifs d'arbustes, petits fruitiers, potagers
+	for k in int(r.get_area() / 160.0):
+		var pa := Vector3(rv.randf_range(r.position.x + 2.0, r.end.x - 2.0), 0.08, rv.randf_range(r.position.y + 2.0, r.end.y - 2.0))
+		var t := rv.randf()
+		if t < 0.55:
+			for i in rv.randi_range(1, 3):
+				Details.arbuste(pa + Vector3(rv.randf_range(-1.5, 1.5), 0, rv.randf_range(-1.5, 1.5)), rv.randf_range(0.8, 2.0), rv)
+		elif t < 0.8:
+			Details.arbre(pa, rv.randf_range(0.5, 0.7), rv)
+		else:
+			Lot.boite_c(Vector3(4.0, 0.12, 3.0), pa + Vector3(0, 0.02, 0), Color(0.36, 0.27, 0.18))
+			for i in 4:
+				for j in 5:
+					Details.arbuste(pa + Vector3(-1.6 + j * 0.8, 0.06, -1.1 + i * 0.75), 0.35, rv, Color(0.35, 0.55, 0.25))
+			Verdure.exclure(Rect2(pa.x - 2.0, pa.z - 1.5, 4.0, 3.0))
+	Verdure.pelouse(r.grow(-0.5), 0.6, 0.06, 0.08)
 	# Dépendances (ateliers, remises) à toit d'ardoise
 	for k in 3:
 		var l := rng.randf_range(6.0, 10.0)
 		var p2 := Vector3(rng.randf_range(r.position.x + 6.0, r.end.x - 6.0), 0, rng.randf_range(r.position.y + 5.0, r.end.y - 5.0))
 		Geo.boite_mat(racine, Vector3(l, 3.0, 6.0), p2 + Vector3(0, 1.5, 0), Tex.mat_facade(TUFFEAU[k % TUFFEAU.size()]))
 		Geo.toit(racine, l, 6.4, 1.8, p2 + Vector3(0, 3.0, 0), Tex.mat_ardoise(), true)
+
+
+## Lierre en plaques sur les deux faces d'un muret de 1,8 m (le long de x si le_long_de_x).
+static func _lierre(centre: Vector3, l: float, le_long_de_x: bool, rv: RandomNumberGenerator) -> void:
+	var m := Tex.mat_rameau(Color(0.32, 0.45, 0.24))
+	var ax := Vector3.RIGHT if le_long_de_x else Vector3.BACK
+	var tr := Vector3.BACK if le_long_de_x else Vector3.RIGHT
+	var a := -l * 0.5 + rv.randf_range(1.0, 8.0)
+	while a < l * 0.5 - 2.0:
+		var larg := rv.randf_range(2.0, 6.0)
+		var cote := 1.0 if rv.randf() < 0.5 else -1.0
+		for k in int(larg * 9.0):
+			var p := centre + ax * (a + rv.randf_range(0.0, larg)) + tr * cote * rv.randf_range(0.21, 0.27) + Vector3.UP * rv.randf_range(0.3, 1.75)
+			var s := rv.randf_range(0.25, 0.4)
+			var u := ax * s
+			var v := Vector3.UP * s
+			Lot.carte([p - u - v, p + u - v, p + u + v, p - u + v], (tr * cote + Vector3.UP * 0.2).normalized(), m)
+		a += larg + rv.randf_range(4.0, 14.0)
+
+
+static func _mat_muret() -> Material:
+	return Tex.mat_pierre_taille(Color(0.9, 0.86, 0.77))
 
 
 ## Trace les chaussées à partir des noeuds et des rues du plan.

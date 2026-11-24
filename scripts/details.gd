@@ -7,6 +7,7 @@ const Geo = preload("res://scripts/geo.gd")
 const Tex = preload("res://scripts/textures.gd")
 const Lot = preload("res://scripts/lot.gd")
 const Modeles = preload("res://scripts/modeles3d.gd")
+const Verdure = preload("res://scripts/verdure.gd")
 
 ## Commerces fictifs : [enseigne, couleur de devanture, couleur du store]
 const COMMERCES: Array = [
@@ -141,6 +142,9 @@ static func _fenetres(rng: RandomNumberGenerator, pied: Vector3, b: Basis, l: fl
 				Lot.boite(Vector3(0.24, 0.3, 0.17), _p(pied, b, a, y0 + h + 0.12, 0.085), pierre, b)
 			# Appui saillant
 			Lot.boite(Vector3(w + 0.5, 0.09, 0.26), _p(pied, b, a, y0 - 0.06, 0.13), pierre, b)
+			# Jardinière de géraniums sur certains appuis côté rue
+			if rue and not porte_fenetre and rv().randf() < 0.16:
+				jardiniere_fenetre(_p(pied, b, a, y0, 0.2), b, w)
 			# Dormant blanc, vitrage, petits bois
 			Lot.boite(Vector3(w, h, 0.03), _p(pied, b, a, yc, 0.015), cadre, b)
 			Lot.boite(Vector3(w - 0.12, h - 0.12, 0.03), _p(pied, b, a, yc, 0.03), Tex.vitrage(rng.randi() % 4), b)
@@ -158,6 +162,18 @@ static func _fenetres(rng: RandomNumberGenerator, pied: Vector3, b: Basis, l: fl
 				else:
 					for c in [-1.0, 1.0]:
 						Lot.boite(Vector3(w * 0.5, h, 0.04), _p(pied, b, a + c * (w * 0.75 + 0.2), yc, 0.04), mat_volet, b)
+
+
+const GERANIUMS: Array = [Color(0.95, 0.25, 0.3), Color(0.98, 0.45, 0.6), Color(0.95, 0.95, 0.92), Color(0.85, 0.2, 0.55)]
+
+
+## Jardinière posée sur un appui de fenêtre, avec des fleurs qui débordent.
+static func jardiniere_fenetre(p: Vector3, b: Basis, w: float) -> void:
+	var va := rv()
+	Lot.boite(Vector3(w * 0.9, 0.18, 0.2), p + Vector3(0, 0.09, 0), Lot.couleur(Color(0.62, 0.32, 0.2) if va.randf() < 0.6 else Color(0.2, 0.3, 0.22)), b)
+	var fleur: Color = GERANIUMS[va.randi() % GERANIUMS.size()]
+	Lot.feuillage(p + Vector3(0, 0.28, 0), Vector3(w * 0.45, 0.14, 0.14), 7, 0.17, Tex.mat_rameau(Color(0.45, 0.6, 0.3)), va)
+	Lot.feuillage(p + Vector3(0, 0.33, 0), Vector3(w * 0.42, 0.1, 0.12), 5, 0.13, Tex.mat_rameau(fleur), va)
 
 
 ## Pierres de tuffeau, enduits et volets du centre ancien.
@@ -387,7 +403,9 @@ static func mobilier_centre(racine: Node3D, rng: RandomNumberGenerator) -> void:
 	while x < 310.0:
 		for zz in [-6.6, 6.6]:
 			Lot.boite_c(Vector3(0.9, 0.02, 0.5), Vector3(x, 0.08, zz), Color(0.12, 0.12, 0.13))
-		Lot.cylindre(0.35, 0.02, Vector3(x + 10.0, 0.08, rng.randf_range(-3.0, 3.0)), Lot.couleur(Color(0.18, 0.18, 0.19)))
+		var zr := rng.randf_range(-3.0, 3.0)
+		if not Modeles.present(Modeles.RUE):
+			Lot.cylindre(0.35, 0.02, Vector3(x + 10.0, 0.08, zr), Lot.couleur(Color(0.18, 0.18, 0.19)))
 		x += 25.0
 	# Réverbères des rues transversales
 	for xs in rues_ns:
@@ -519,6 +537,30 @@ static func maison(rng: RandomNumberGenerator, centre: Vector3, face: float, lar
 			Lot.boite(Vector3(0.08, 2.4, 0.08), jardin + Vector3(sx, 1.2, 0.6), Lot.couleur(Color(0.3, 0.5, 0.7)), Basis(Vector3.RIGHT, -0.25))
 		Lot.boite_c(Vector3(2.6, 0.08, 0.08), jardin + Vector3(0, 2.35, 0), Color(0.3, 0.5, 0.7))
 		Lot.boite_c(Vector3(0.5, 0.05, 0.25), jardin + Vector3(0, 0.5, 0), Color(0.8, 0.2, 0.2))
+	# Verdure du jardin : arbustes au pied de la façade, massif fleuri, herbe haute le long des clôtures
+	var va := rv()
+	var fleuris: Array = [Color(0.9, 0.45, 0.6), Color(0.95, 0.85, 0.85), Color(0.75, 0.35, 0.8), Color(0.95, 0.6, 0.3), Color(0.95, 0.95, 0.9)]
+	for k in va.randi_range(2, 4):
+		var a := va.randf_range(-larg * 0.45, larg * 0.45)
+		if absf(a - larg * 0.2) < 1.3:
+			continue   # devant la porte
+		var teinte: Color = fleuris[va.randi() % fleuris.size()] if va.randf() < 0.35 else Color(0, 0, 0, 0)
+		arbuste(_p(pied, b, a, 0.0, 0.8), va.randf_range(0.7, 1.2), va, teinte)
+	for k in va.randi_range(1, 3):
+		var px := va.randf_range(-7.0, 7.0)
+		if px > -1.0 and px < 3.0:
+			continue
+		arbuste(avant + Vector3(px, 0, -face * va.randf_range(1.5, 3.5)), va.randf_range(0.9, 1.6), va)
+	# Bacs à ordures (vert et couvercle jaune) près du portail
+	if va.randf() < 0.45:
+		for k in 2:
+			var pb := avant + Vector3(-1.4 - k * 0.75, 0, face * 0.25)
+			Lot.boite_c(Vector3(0.58, 0.95, 0.7), pb + Vector3(0, 0.5, 0), Color(0.16, 0.36, 0.2))
+			Lot.boite_c(Vector3(0.62, 0.06, 0.76), pb + Vector3(0, 1.0, 0), Color(0.16, 0.36, 0.2) if k == 0 else Color(0.9, 0.75, 0.1))
+	Verdure.exclure(Rect2(avant.x - 0.4, minf(avant.z, avant.z - face * 5.6), 2.8, 5.6))
+	Verdure.exclure(Rect2(jardin.x - 4.0, jardin.z - 2.6, 8.0, 5.2))
+	Verdure.exclure(Rect2(pied2.x - larg * 0.15 - 2.4, pied2.z - face * 1.5 - 1.7, larg * 0.3 + 4.8, 3.4))
+	Verdure.pelouse(Rect2(avant.x - 7.8, minf(avant.z - face * 0.8, avant.z - face * 18.0), 15.6, 17.2), 0.5, 0.08)
 	# Clôture grillagée sur les côtés de la parcelle
 	for sx in [-8.0, 8.0]:
 		Lot.boite_c(Vector3(0.05, 1.2, 18.0), avant + Vector3(sx, 0.6, -face * 9.5), Color(0.25, 0.35, 0.25))
@@ -549,15 +591,70 @@ static func arbre(pos: Vector3, taille: float, rng: RandomNumberGenerator, plata
 		var dir := Vector3(cos(ang), 1.4, sin(ang)).normalized()
 		var axe := Basis(Vector3.UP.cross(dir).normalized(), Vector3.UP.angle_to(dir))
 		Lot.cylindre(r * 0.5, R * 1.1, pos + Vector3(0, h_tronc * 0.85, 0) + dir * R * 0.5, ecorce, axe)
-	# Houppier : une touffe centrale et une couronne de touffes irrégulières
-	Lot.sphere(R * 0.85, cime, feuille, 0.85)
-	var n := 6 + rng.randi() % 3
+	# Tirages de l'ancien houppier, gardés pour que le reste de la ville ne change pas de place
+	for k in (6 + rng.randi() % 3) * 5 + 2:
+		rng.randf()
+	# Houppier : un cœur sombre (on ne voit pas à travers) et une couronne de rameaux feuillus
+	var va := rv()
+	var coeur := Tex.mat_feuillage(feuille.albedo_color.darkened(0.3))
+	Lot.sphere(R * 0.58, cime, coeur, 0.8)
+	var n := 4 + va.randi() % 3
 	for k in n:
-		var ang := k * TAU / n + rng.randf_range(-0.3, 0.3)
-		var d := R * rng.randf_range(0.5, 0.75)
-		var p := cime + Vector3(cos(ang) * d, rng.randf_range(-0.35, 0.45) * R, sin(ang) * d)
-		Lot.sphere(R * rng.randf_range(0.5, 0.7), p, feuille if k % 2 == 0 else feuille2, rng.randf_range(0.7, 0.9))
-	Lot.sphere(R * 0.55, cime + Vector3(rng.randf_range(-0.3, 0.3) * R, R * 0.55, rng.randf_range(-0.3, 0.3) * R), feuille2, 0.8)
+		var ang := k * TAU / n + va.randf_range(-0.3, 0.3)
+		var d := R * va.randf_range(0.4, 0.55)
+		var p := cime + Vector3(cos(ang) * d, va.randf_range(-0.3, 0.35) * R, sin(ang) * d)
+		Lot.sphere(R * va.randf_range(0.3, 0.4), p, coeur, va.randf_range(0.7, 0.9))
+	var cartes := Tex.mat_rameau(feuille.albedo_color.lightened(0.05))
+	var cartes2 := Tex.mat_rameau(feuille2.albedo_color)
+	var nb := int(95 * clampf(taille, 0.6, 1.5))
+	Lot.feuillage(cime, Vector3(R * 1.05, R * 0.85, R * 1.05), nb, R * 0.3, cartes, va)
+	Lot.feuillage(cime + Vector3(0, R * 0.25, 0), Vector3(R * 0.85, R * 0.7, R * 0.85), nb / 2, R * 0.28, cartes2, va)
+	Lot.feuillage(cime - Vector3(0, R * 0.1, 0), Vector3(R * 0.7, R * 0.6, R * 0.7), nb / 2, R * 0.3, cartes, va)
+
+
+static var _rv: RandomNumberGenerator = null
+
+
+## Tirage aléatoire réservé à la verdure : ajouter des feuilles ne déplace pas les bâtiments.
+static func rv() -> RandomNumberGenerator:
+	if _rv == null:
+		_rv = RandomNumberGenerator.new()
+		_rv.seed = 99
+	return _rv
+
+
+## Arbuste : petite boule de feuillage avec des rameaux (jardins, massifs, pieds d'immeubles).
+static func arbuste(pos: Vector3, taille: float, rng: RandomNumberGenerator, teinte: Color = Color(0, 0, 0, 0)) -> void:
+	var c: Color = teinte if teinte.a > 0.0 else FEUILLAGES[rng.randi() % FEUILLAGES.size()]
+	var h := taille * rng.randf_range(0.8, 1.1)
+	Lot.sphere(taille * 0.5, pos + Vector3(0, h * 0.45, 0), Tex.mat_feuillage(c.darkened(0.3)), 0.85)
+	Lot.feuillage(pos + Vector3(0, h * 0.5, 0), Vector3(taille * 0.62, h * 0.5, taille * 0.62), int(10 + taille * 6), taille * 0.32, Tex.mat_rameau(c), rng)
+
+
+## Haie taillée : cœur en feuillage et rameaux qui dépassent sur les côtés et le dessus.
+## Le long de l'axe "dir" (x ou z), de longueur l, hauteur h, épaisseur e.
+static func haie(centre: Vector3, l: float, h: float, e: float, le_long_de_x: bool, rng: RandomNumberGenerator, teinte: Color = Color(0.3, 0.45, 0.22)) -> void:
+	var taille := Vector3(l, h, e) if le_long_de_x else Vector3(e, h, l)
+	Lot.boite(taille * Vector3(1.0, 0.96, 0.85), centre, Tex.mat_feuillage(teinte.darkened(0.15)))
+	var m := Tex.mat_rameau(teinte.lightened(0.1))
+	var ax := Vector3.RIGHT if le_long_de_x else Vector3.BACK
+	var tr := Vector3.BACK if le_long_de_x else Vector3.RIGHT
+	var nb := int(l * 5.0 * h)
+	for k in nb:
+		var a := rng.randf_range(-l * 0.5, l * 0.5)
+		var cote := 1.0 if k % 2 == 0 else -1.0
+		var y := rng.randf_range(-h * 0.4, h * 0.42)
+		var p := centre + ax * a + tr * cote * e * 0.5 + Vector3.UP * y
+		var s := rng.randf_range(0.3, 0.46)
+		var u := ax * s
+		var v := (Vector3.UP + tr * cote * 0.3).normalized() * s
+		Lot.carte([p - u - v, p + u - v, p + u + v, p - u + v], (tr * cote + Vector3.UP * 0.3).normalized(), m)
+	for k in int(l * 2.0):
+		var p := centre + ax * rng.randf_range(-l * 0.5, l * 0.5) + Vector3.UP * (h * 0.48) + tr * rng.randf_range(-e * 0.3, e * 0.3)
+		var s := rng.randf_range(0.25, 0.35)
+		var u := ax * s
+		var v := (Vector3.UP * 0.6 + tr * rng.randf_range(-0.8, 0.8)).normalized() * s
+		Lot.carte([p - u - v * 0.3, p + u - v * 0.3, p + u + v, p - u + v], Vector3.UP, m)
 
 
 # ---------------------------------------------------------------------------
@@ -572,7 +669,7 @@ static func placette(racine: Node3D, rng: RandomNumberGenerator) -> void:
 	var ce := Vector3(c2.x, 0, c2.y)
 	var pierre_claire := Color(0.86, 0.82, 0.72)
 	# Dallage clair et bordure de granit
-	Geo.boite_mat(racine, Vector3(r.size.x, 0.04, r.size.y), Vector3(ce.x, 0.06, ce.z), Tex.mat_beton(Color(1.0, 0.95, 0.85)), false)
+	Geo.boite_mat(racine, Vector3(r.size.x, 0.04, r.size.y), Vector3(ce.x, 0.06, ce.z), Tex.mat_dalles(), false)
 	for cote in [-1.0, 1.0]:
 		Lot.boite_c(Vector3(r.size.x, 0.12, 0.3), ce + Vector3(0, 0.08, cote * r.size.y * 0.5), Color(0.5, 0.5, 0.52))
 		Lot.boite_c(Vector3(0.3, 0.12, r.size.y), ce + Vector3(cote * r.size.x * 0.5, 0.08, 0), Color(0.5, 0.5, 0.52))
@@ -615,6 +712,7 @@ static func placette(racine: Node3D, rng: RandomNumberGenerator) -> void:
 		var pq: Vector3 = ce + q
 		Lot.boite_c(Vector3(9.0, 0.25, 9.0), pq + Vector3(0, 0.12, 0), Color(0.6, 0.58, 0.54))
 		Geo.boite_mat(racine, Vector3(8.6, 0.06, 8.6), pq + Vector3(0, 0.24, 0), Tex.mat_herbe(), false)
+		Verdure.pelouse(Rect2(pq.x - 3.9, pq.z - 3.9, 7.8, 7.8), 0.6, 0.15, 0.27, 0.8)
 		# Bordure de fleurs : petites touffes serrées, une couleur par côté
 		for cote in 4:
 			var bc := Basis(Vector3.UP, cote * PI * 0.5)
@@ -673,3 +771,157 @@ static func placette(racine: Node3D, rng: RandomNumberGenerator) -> void:
 	t.outline_size = 6
 	Lot.boite_c(Vector3(0.08, 2.4, 0.08), ce + Vector3(-1.6, 1.2, r.size.y * 0.5 + 0.2), FER)
 	Lot.boite_c(Vector3(0.08, 2.4, 0.08), ce + Vector3(1.6, 1.2, r.size.y * 0.5 + 0.2), FER)
+
+
+# ---------------------------------------------------------------------------
+# Mobilier supplémentaire : panneaux, horodateurs, bacs à fleurs, regards, coffrets, colonnes à verre
+# ---------------------------------------------------------------------------
+
+## Objets du pack de mobilier urbain de Sellier (numéro sous RootNode), sans texte ni logo.
+const PACK := {"borne": "RootNode#3", "regard": "RootNode#16", "regard2": "RootNode#18", "grille_arbre": "RootNode#35",
+	"grille": "RootNode#41", "arceau": "RootNode#34", "bac_fleurs": "RootNode#14", "bac_fleurs2": "RootNode#15",
+	"coffret": "RootNode#60", "banc_moderne": "RootNode#45", "banc_grille": "RootNode#47", "bac_gravier": "RootNode#59"}
+
+
+## Pose un objet du pack ; renvoie false s'il manque (on dessine alors un remplaçant).
+static func _pack(racine: Node3D, nom: String, p: Vector3, angle: float, s: float = 1.0) -> bool:
+	return Modeles.poser(racine, Modeles.RUE, p, angle, s, PACK[nom], false) != null
+
+
+## Panneau routier sur poteau, face tournée vers "angle" (0 : visible depuis +z).
+## type : "stop", "zone30", "sens_interdit", "pieton", "limite50".
+static func panneau(racine: Node3D, pos: Vector3, angle: float, type: String) -> void:
+	var gris := Lot.couleur(Color(0.55, 0.57, 0.58))
+	Lot.cylindre(0.035, 2.6, pos + Vector3(0, 1.3, 0), gris)
+	var b := Basis(Vector3.UP, angle)
+	var face := b * Vector3(0, 0, 1)
+	var disque := b * Basis(Vector3.RIGHT, PI * 0.5)
+	var c := pos + Vector3(0, 2.3, 0)
+	var blanc := Lot.couleur(Color(0.95, 0.95, 0.93))
+	var rouge := Lot.couleur(Color(0.78, 0.08, 0.08))
+	var bleu := Lot.couleur(Color(0.08, 0.3, 0.65))
+	var texte := ""
+	var couleur_texte := Color.WHITE
+	match type:
+		"stop":
+			Lot.cylindre(0.36, 0.03, c, rouge, disque)
+			Lot.cylindre(0.34, 0.032, c, rouge, disque)
+			texte = "STOP"
+		"zone30", "limite50":
+			Lot.cylindre(0.33, 0.03, c, rouge, disque)
+			Lot.cylindre(0.26, 0.034, c, blanc, disque)
+			texte = "30" if type == "zone30" else "50"
+			couleur_texte = Color(0.05, 0.05, 0.05)
+		"sens_interdit":
+			Lot.cylindre(0.33, 0.03, c, rouge, disque)
+			Lot.boite(Vector3(0.44, 0.1, 0.036), c, blanc, b)
+		"pieton":
+			Lot.boite(Vector3(0.6, 0.6, 0.03), c, bleu, b)
+			Lot.boite(Vector3(0.36, 0.36, 0.034), c + Vector3(0, -0.03, 0), blanc, b * Basis(Vector3.BACK, PI * 0.25))
+			Lot.boite(Vector3(0.06, 0.2, 0.036), c + Vector3(0, -0.02, 0), Lot.couleur(Color(0.1, 0.1, 0.1)), b)
+			Lot.cylindre(0.035, 0.036, c + Vector3(0, 0.12, 0), Lot.couleur(Color(0.1, 0.1, 0.1)), disque)
+	# Dos du panneau gris
+	Lot.cylindre(0.3, 0.01, c - face * 0.025, gris, disque)
+	if texte != "":
+		var l := Geo.texte(racine, texte, c + face * 0.022, 34 if texte == "STOP" else 44, couleur_texte, false)
+		l.outline_size = 0
+		l.rotation.y = angle
+		l.pixel_size = 0.0055
+
+
+## Horodateur gris foncé, petit écran jaune.
+static func horodateur(p: Vector3, angle: float) -> void:
+	var b := Basis(Vector3.UP, angle)
+	Lot.cylindre(0.06, 1.0, p + Vector3(0, 0.5, 0), Lot.couleur(Color(0.2, 0.22, 0.25)))
+	Lot.boite(Vector3(0.32, 0.55, 0.24), p + Vector3(0, 1.25, 0), Lot.couleur(Color(0.22, 0.25, 0.3)), b)
+	Lot.boite(Vector3(0.18, 0.1, 0.02), p + Vector3(0, 1.4, 0) + b * Vector3(0, 0, 0.125), Lot.couleur(Color(0.9, 0.8, 0.3), 0.6), b)
+	Lot.boite(Vector3(0.36, 0.06, 0.28), p + Vector3(0, 1.55, 0), Lot.couleur(Color(0.15, 0.17, 0.2)), b)
+
+
+## Colonne à verre (recyclage), verte, en forme de cloche.
+static func colonne_verre(p: Vector3) -> void:
+	var vert := Lot.couleur(Color(0.2, 0.45, 0.28))
+	Lot.cylindre(0.72, 1.35, p + Vector3(0, 0.75, 0), vert)
+	Lot.sphere(0.72, p + Vector3(0, 1.42, 0), vert, 0.45)
+	Lot.cylindre(0.12, 0.15, p + Vector3(0, 1.8, 0), Lot.couleur(Color(0.25, 0.25, 0.27)))
+	Lot.cylindre(0.74, 0.1, p + Vector3(0, 0.05, 0), Lot.couleur(Color(0.25, 0.25, 0.27)))
+	Lot.boite(Vector3(0.3, 0.12, 0.05), p + Vector3(0, 1.2, 0.71), Lot.couleur(Color(0.1, 0.1, 0.1)))
+
+
+## Coffret électrique (modèle du pack ou boîte grise).
+static func coffret(racine: Node3D, p: Vector3, angle: float) -> void:
+	if not _pack(racine, "coffret", p, angle, 0.55):
+		Lot.boite(Vector3(0.8, 1.1, 0.35), p + Vector3(0, 0.55, 0), Lot.couleur(Color(0.82, 0.82, 0.78)), Basis(Vector3.UP, angle))
+
+
+## Le mobilier ajouté en plus : boulevard, centre, lotissements, Tilleuls.
+static func mobilier_plus(racine: Node3D) -> void:
+	var rv := rv()
+	# Boulevard : grilles au pied des platanes, herbes folles au pied des arbres
+	var xa := -300.0
+	while xa < 300.0:
+		for zz in [-10.5, 10.5]:
+			if absf(xa - 160.0) < 6.0 and zz > 0.0:
+				continue
+			if xa > -285.0 and xa < -212.0 and zz < 0.0:
+				continue
+			if not _pack(racine, "grille_arbre", Vector3(xa, 0.04, zz), 0.0, 0.62):
+				Lot.boite_c(Vector3(1.5, 0.02, 1.5), Vector3(xa, 0.05, zz), Color(0.15, 0.15, 0.16))
+			Verdure.pelouse(Rect2(xa - 0.6, zz - 0.6, 1.2, 1.2), 6.0, 0.1, 0.05, 0.55)
+		xa += 22.0
+	# Boulevard : horodateurs, bacs à fleurs et arceaux à vélos, entre les arbres et les réverbères
+	var x := -294.5
+	while x < 300.0:
+		for zz in [-11.3, 11.3]:
+			if zz < 0.0 and x > -292.0 and x < -206.0:
+				continue
+			var pres_rue := false
+			for xs in [-200.0, -50.0, 100.0, 250.0]:
+				if absf(x - xs) < 12.0:
+					pres_rue = true
+			if pres_rue or (zz > 0.0 and x > 135.0 and x < 185.0):
+				continue
+			var r := rv.randf()
+			var p := Vector3(x, 0.04, zz)
+			if r < 0.22:
+				if not _pack(racine, "bac_fleurs" if r < 0.11 else "bac_fleurs2", p, 0.0, 0.45):
+					Lot.boite_c(Vector3(3.4, 0.4, 1.1), p + Vector3(0, 0.2, 0), Color(0.6, 0.58, 0.55))
+				for k in 3:
+					arbuste(p + Vector3(-1.1 + k * 1.1, 0.22, 0), 0.55, rv, [Color(0.9, 0.4, 0.5), Color(0.95, 0.85, 0.4), Color(0.7, 0.4, 0.85)][(k + int(x)) % 3])
+			elif r < 0.42:
+				horodateur(Vector3(x, 0.04, signf(zz) * 9.4), 0.0 if zz < 0.0 else PI)
+			elif r < 0.6:
+				for k in 3:
+					if not _pack(racine, "arceau", p + Vector3(k * 1.0 - 1.0, 0, 0), PI * 0.5, 0.45):
+						Lot.boite_c(Vector3(0.05, 0.8, 0.7), p + Vector3(k * 1.0 - 1.0, 0.4, 0), ZINC)
+		x += 11.0
+	# Regards et grilles d'égout du pack sur le boulevard
+	x = -305.0
+	while x < 305.0:
+		_pack(racine, "regard" if int(x) % 2 == 0 else "regard2", Vector3(x, 0.08, rv.randf_range(-3.0, 3.0)), rv.randf() * TAU, 0.7)
+		x += 37.0
+	# Panneaux « passage piéton » et « sens interdit » aux carrefours du centre
+	for xs in [-200.0, -50.0, 100.0, 250.0]:
+		panneau(racine, Vector3(xs - 7.2, 0.04, -16.5), PI * 0.5, "pieton")
+		panneau(racine, Vector3(xs + 7.2, 0.04, 16.5), -PI * 0.5, "pieton")
+	# Lotissements des Vignes : zone 30 à l'entrée des rues, stop à la sortie, coffrets, colonnes à verre
+	var blocs: Array = [[-40.0, 245.0], [255.0, 345.0], [355.0, 445.0], [455.0, 615.0]]
+	for b in blocs:
+		for zl in [-225.0, -365.0]:
+			panneau(racine, Vector3(b[0] + 1.5, 0, zl + 5.3), -PI * 0.5, "zone30")
+			panneau(racine, Vector3(b[1] - 1.5, 0, zl - 5.3), PI * 0.5, "stop")
+			var xc: float = b[0] + 20.0
+			while xc < b[1] - 10.0:
+				coffret(racine, Vector3(xc, 0, zl + (5.4 if int(xc) % 2 == 0 else -5.4)), 0.0 if int(xc) % 2 != 0 else PI)
+				xc += rv.randf_range(40.0, 70.0)
+		colonne_verre(Vector3(b[0] + 6.0, 0, -219.5))
+		colonne_verre(Vector3(b[0] + 7.7, 0, -219.5))
+	# Grands ensembles : colonnes à verre près des conteneurs, bancs modernes
+	for p in [Vector3(-192, 0, -180), Vector3(-262, 0, -319)]:
+		colonne_verre(p + Vector3(5.5, 0, 0))
+		colonne_verre(p + Vector3(7.2, 0, 0))
+	for p in [Vector3(-230, 0, -200), Vector3(-150, 0, -260), Vector3(-280, 0, -380), Vector3(-110, 0, -350)]:
+		if not _pack(racine, "banc_moderne", p, rv.randf() * TAU, 0.6):
+			_banc(p, 0.0)
+		arbuste(p + Vector3(2.5, 0, 1.0), 1.4, rv)
+		arbuste(p + Vector3(-2.5, 0, 1.2), 1.1, rv)

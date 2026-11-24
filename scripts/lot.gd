@@ -225,3 +225,39 @@ static func finir(racine: Node3D) -> void:
 		mi.material_override = p["mat"]
 		racine.add_child(mi)
 	_paquets.clear()
+
+
+## Une carte (rectangle plat texturé) : coins dans l'ordre bas-gauche, bas-droite, haut-droite, haut-gauche.
+## "normale" : direction d'éclairage commune aux quatre coins ; "teinte" : légère variation de couleur.
+static func carte(coins: Array, normale: Vector3, m: Material, teinte: Color = Color.WHITE) -> void:
+	var centre: Vector3 = (coins[0] + coins[2]) * 0.5
+	var p := _paquet(m, centre)
+	var st: SurfaceTool = p["st"]
+	var n0: int = p["n"]
+	var uvs := [Vector2(0, 1), Vector2(1, 1), Vector2(1, 0), Vector2(0, 0)]
+	for k in 4:
+		st.set_color(teinte)
+		st.set_normal(normale)
+		st.set_uv(uvs[k])
+		st.add_vertex(coins[k])
+	st.add_index(n0); st.add_index(n0 + 1); st.add_index(n0 + 2)
+	st.add_index(n0); st.add_index(n0 + 2); st.add_index(n0 + 3)
+	p["n"] = n0 + 4
+
+
+## Touffe de feuillage autour de "centre" : "nb" cartes de taille "s" réparties dans un ellipsoïde de rayons r.
+## Chaque carte est éclairée comme la surface d'une boule, ce qui donne du volume.
+static func feuillage(centre: Vector3, r: Vector3, nb: int, s: float, m: Material, rng: RandomNumberGenerator) -> void:
+	for k in nb:
+		var dir := Vector3(rng.randf_range(-1.0, 1.0), rng.randf_range(-0.6, 1.0), rng.randf_range(-1.0, 1.0)).normalized()
+		var p := centre + Vector3(dir.x * r.x, dir.y * r.y, dir.z * r.z) * rng.randf_range(0.55, 1.0)
+		var n := (dir + Vector3(rng.randf_range(-0.7, 0.7), rng.randf_range(-0.3, 0.7), rng.randf_range(-0.7, 0.7))).normalized()
+		var u := n.cross(Vector3.UP if absf(n.y) < 0.9 else Vector3.RIGHT).normalized()
+		var v := u.cross(n).normalized()
+		if v.y < 0.0:
+			v = -v
+			u = -u
+		var t := s * rng.randf_range(0.8, 1.2)
+		var eclairage := (dir + Vector3.UP * 0.35).normalized()
+		var g := rng.randf_range(0.85, 1.12)
+		carte([p - u * t - v * t, p + u * t - v * t, p + u * t + v * t, p - u * t + v * t], eclairage, m, Color(g, g, g * rng.randf_range(0.9, 1.0)))

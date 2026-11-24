@@ -15,8 +15,33 @@ Utilisés aujourd'hui :
   propane_and_gas_tanks_set_-_game_ready.glb   stock de gaz de l'usine
   skoda_kodiaq_2024.glb                  VL du chef de garde (rouge, sans logo ni plaque)
   skoda_octavia_combi_2024.glb           voitures du parking du personnel (sans logo)
-  street_objects_pack_1_revamped.glb     bancs, poubelles, jardinières, poteaux incendie
+  street_objects_pack_1_revamped.glb     bancs, poubelles, jardinières, poteaux incendie,
+                                         regards, grilles d'arbres, arceaux à vélos, bacs à fleurs, coffrets
   damaged_firehydrant.glb                poteau incendie accidenté près de la caserne
   tree_low_poly_lowpoly.glb              arbres du square de la Mairie
   scanned_plants_and_grass_free_download.glb   massifs du square
   tramain_house_1_france.glb             maison de la ferme, à la campagne
+  2021_volkswagen_polo_plus.glb          voitures qui roulent (repeintes, sans logo, plaques vierges)
+  2021_volkswagen_t-cross_280_tsi.glb    voitures qui roulent (repeintes, sans logo, plaques vierges)
+  maple_tree.glb                         érables du square et des Tilleuls
+  tree_animate.glb                       bosquets de trois arbres aux Tilleuls
+  corner_cafe.glb                        kiosque à café avec terrasse dans le square
+  electrical_box_-_free.glb              armoires électriques au bord des rues des Tilleuls
+  electric_box_1_lowpoly.glb             boîtiers électriques au pied des tours
+  small_warehouse.glb                    petit entrepôt, ZA des Ormeaux
+  construction_site_asset_pack.glb       chantier aux Ormeaux (tuyaux béton, palettes, outils)
+  modular_gabion_fence_element.glb       gabions au fond du chantier
+  blocking_the_street_avenue_tool.glb    poteaux et chaînes devant le chantier
+  a_pile_of_clay.glb                     tas de terre du chantier
+  frenchfirebrigade_vehicle.glb          fourgon VTU dans la cour de la caserne (logo et nom de ville effacés)
+  sac_sapeur_pompier_grand_format.glb    sacs d'intervention dans la remise
+  modern_fire_extinguisher.glb           extincteurs de la caserne
+  hohlstrahlrohr.glb                     lance posée dans la remise
+  firefighter_vision_water_attack_hose.glb   tuyaux en rouleaux dans la remise
+
+Reçus mais pas utilisés (pour l'instant) :
+  bmw_x6m_competition...glb, firetruck_scania_p124...glb, grass_and_weeds.glb,
+  oak__pine_forest_grounds...glb, pine_forest_at_sunset.glb   trop lourds pour le jeu
+  firefighter.glb, firefighter_in_turnout_gear.glb   gardés pour l'étape des personnages
+  european_buildings_asset_pack_3.glb, abandoned_factory_modular_kit.glb   à assembler plus tard
+  fire_hydrant_scan_no._1.glb            poteau ouvert et cassé, gardé pour une intervention
