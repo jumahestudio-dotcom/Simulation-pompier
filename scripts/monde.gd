@@ -30,7 +30,7 @@ static func construire(racine: Node3D) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 37  # toujours la même ville
 	# Sol (herbe partout, trottoirs pavés dans le centre)
-	Geo.boite_mat(racine, Vector3(1800, 1, 1400), Vector3(100, -0.5, 0), Tex.mat_herbe())
+	Geo.boite_mat(racine, Vector3(4400, 1, 4000), Vector3(100, -0.5, 0), Tex.mat_herbe())
 	Geo.boite_mat(racine, Vector3(660, 0.04, 320), Vector3(0, 0.02, -2), Tex.mat_paves(), false)
 	# Toutes les rues, tracées à partir du plan (carte.gd)
 	_routes(racine)
@@ -47,7 +47,7 @@ static func construire(racine: Node3D) -> void:
 		Geo.boite(racine, Vector3(3, 0.02, 0.2), Vector3(xm, 0.085, 0), Color(0.9, 0.9, 0.9), false)
 		xm += 8.0
 	# Rivière (le Cher), ponts de la rue et de la rocade
-	Geo.boite(racine, Vector3(1800, 0.05, 40), Vector3(100, 0.07, 180), Color(0.2, 0.35, 0.45), false)
+	Geo.boite(racine, Vector3(4400, 0.05, 40), Vector3(100, 0.07, 180), Color(0.2, 0.35, 0.45), false)
 	Geo.texte(racine, "Le Cher", Vector3(-120, 2, 180), 120, Color(0.7, 0.85, 1.0))
 	for pont in [[100.0, 14.0], [-420.0, 24.0]]:
 		var px: float = pont[0]
@@ -329,13 +329,19 @@ static func _caserne(racine: Node3D) -> void:
 	Geo.mur(racine, "z", -285.0, -70.0, -14.0, 0.0, 7.0, 0.4, gris, [], bet)
 	Geo.mur(racine, "z", -215.0, -70.0, -14.0, 0.0, 7.0, 0.4, gris, [], bet)
 	Geo.mur(racine, "x", -14.0, -285.0, -215.0, 0.0, 7.0, 0.4, gris, [
-		[-262.0, 5.0, 0.0, 4.6], [-238.0, 5.0, 0.0, 4.6], [-278.0, 1.6, 0.0, 2.3]], bet)
+		[-262.0, 5.0, 0.0, 4.6], [-238.0, 5.0, 0.0, 4.6], [-222.0, 3.4, 0.0, 2.9], [-278.0, 1.6, 0.0, 2.3]], bet)
 	# Encadrements rouges des portes de remise et rideaux relevés
 	for px in [-262.0, -238.0]:
 		for cote in [-1.0, 1.0]:
 			Geo.boite(racine, Vector3(0.3, 4.6, 0.5), Vector3(px + cote * 2.6, 2.3, -13.9), rouge, false)
 		Geo.boite(racine, Vector3(5.5, 0.3, 0.5), Vector3(px, 4.75, -13.9), rouge, false)
 		Geo.boite_mat(racine, Vector3(5.0, 0.6, 0.6), Vector3(px, 4.3, -14.3), Tex.plaque("rideau", Tex.rideau(), 0.5, 0.5), false)
+	# Porte sectionnelle du VL du chef de garde, relevée
+	for cote in [-1.0, 1.0]:
+		Geo.boite(racine, Vector3(0.25, 2.9, 0.5), Vector3(-222.0 + cote * 1.82, 1.45, -13.9), rouge, false)
+	Geo.boite(racine, Vector3(3.9, 0.25, 0.5), Vector3(-222.0, 3.0, -13.9), rouge, false)
+	Geo.boite_mat(racine, Vector3(3.4, 0.45, 0.5), Vector3(-222.0, 2.65, -14.3), Tex.plaque("rideau", Tex.rideau(), 0.5, 0.5), false)
+	Geo.boite(racine, Vector3(3.0, 0.02, 0.3), Vector3(-222.0, 0.13, -11.0), Color(0.95, 0.8, 0.1), false)
 	# Bandes du sol devant la remise
 	for px in [-262.0, -238.0]:
 		Geo.boite(racine, Vector3(4.0, 0.02, 0.4), Vector3(px, 0.13, -11.0), Color(0.95, 0.8, 0.1), false)

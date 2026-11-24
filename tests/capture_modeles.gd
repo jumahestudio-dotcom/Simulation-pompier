@@ -35,7 +35,14 @@ func _ready() -> void:
 			["m12_placette_fontaine", Vector3(-304.0, 1.7, -55.0), Vector3(-310.5, 1.2, -65.0)],
 			["m13_ferme_hangar", Vector3(-560.0, 4.0, -72.0), Vector3(-585.0, 3.0, -100.0)],
 			["m14_ferme_betes", Vector3(-625.0, 3.0, -42.0), Vector3(-642.0, 1.0, -68.0)],
-			["m15_ferme_haut", Vector3(-600.0, 45.0, -30.0), Vector3(-610.0, 0.0, -90.0)]]:
+			["m15_ferme_haut", Vector3(-600.0, 45.0, -30.0), Vector3(-610.0, 0.0, -90.0)],
+			["m17_remise_fond", Vector3(-226.0, 2.2, -20.0), Vector3(-258.0, 2.5, -52.0)],
+			["m18_escalier", Vector3(-262.0, 1.7, -46.0), Vector3(-273.0, 2.0, -53.0)],
+			["m19_coursive", Vector3(-276.0, 5.0, -55.3), Vector3(-240.0, 4.6, -55.8)],
+			["m20_chambre", Vector3(-266.2, 5.0, -58.0), Vector3(-265.6, 3.6, -69.0)],
+			["m21_reserve", Vector3(-228.0, 5.0, -58.0), Vector3(-224.0, 4.0, -66.0)],
+			["m22_porte_vl", Vector3(-222.0, 1.8, -2.0), Vector3(-222.0, 1.5, -14.0)],
+			["m23_bord_ouest", Vector3(-600.0, 60.0, 0.0), Vector3(-850.0, 0.0, -250.0)]]:
 		cam.global_position = v[1]
 		cam.look_at(v[2])
 		await _attendre(0.6)

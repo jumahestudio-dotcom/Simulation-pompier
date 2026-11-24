@@ -20,6 +20,11 @@ static func construire(racine: Node3D) -> void:
 	_foret(racine, rng, Rect2(690, -690, 300, 830), "Bois de la Douée", Vector3(686, 0, -200))
 	_foret(racine, rng, Rect2(-395, 485, 1385, 210), "Bois de Bréchenay", Vector3(100, 0, 480))
 	_foret(racine, rng, Rect2(690, 215, 300, 270), "", Vector3.ZERO)
+	# Bordure ouest de la carte : bois continu (sauf sur le Cher) et angles nord-ouest et sud-ouest
+	var rng_bord := RandomNumberGenerator.new()
+	rng_bord.seed = 4242
+	for r in [Rect2(-920, -700, 130, 840), Rect2(-920, 222, 130, 478), Rect2(-790, -700, 395, 100), Rect2(-790, 595, 395, 105)]:
+		_foret(racine, rng_bord, r, "", Vector3.ZERO)
 	# Ripisylve : arbres au bord du Cher hors de la ville
 	for r in [Rect2(-880, 138, 440, 16), Rect2(-880, 206, 440, 16), Rect2(690, 138, 300, 16), Rect2(690, 206, 300, 16)]:
 		_bosquet(rng, r, 90.0)

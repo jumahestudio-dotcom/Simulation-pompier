@@ -29,6 +29,7 @@ static func construire(racine: Node3D) -> void:
 	_salle_de_garde(racine)
 	_bureau(racine)
 	_chambres(racine)
+	_etage(racine)
 	_remise(racine)
 	_salle_de_sport(racine)
 	_cour_et_tour(racine)
@@ -374,6 +375,180 @@ static func _chambres(racine: Node3D) -> void:
 
 
 # ---------------------------------------------------------------------------
+# Étage au-dessus des pièces de vie : escalier depuis la remise, coursive en mezzanine,
+# chambres de garde, salle de repos et réserve de matériel.
+# ---------------------------------------------------------------------------
+
+const ETAGE := HAUT + 0.12   # niveau du plancher de l'étage
+const PLAFOND_ETAGE := 6.9
+
+
+static func _lumiere_etage(racine: Node3D, pos: Vector3, portee: float, energie: float = 0.7) -> void:
+	var l := OmniLight3D.new()
+	l.position = Vector3(pos.x, PLAFOND_ETAGE - 0.5, pos.z)
+	l.omni_range = portee
+	l.light_energy = energie
+	l.light_color = Color(1.0, 0.96, 0.88)
+	racine.add_child(l)
+	Lot.boite(Vector3(1.2, 0.05, 0.3), Vector3(pos.x, PLAFOND_ETAGE - 0.03, pos.z), Tex.emissif(Color(1.0, 0.98, 0.92), 1.5))
+
+
+static func _etage(racine: Node3D) -> void:
+	var gris_fonce := Color(0.3, 0.32, 0.35)
+	var h := PLAFOND_ETAGE - ETAGE
+	# Plancher praticable (le plafond du rez-de-chaussée) et faux plafond de l'étage
+	_collision(racine, Vector3(70.0, 0.12, 16.0), Vector3(-250.0, HAUT + 0.06, -62.0))
+	Lot.boite_c(Vector3(69.6, 0.02, 15.8), Vector3(-250.0, ETAGE + 0.01, -62.0), Color(0.62, 0.6, 0.56))
+	Lot.boite_c(Vector3(70.0, 0.1, 16.3), Vector3(-250.0, PLAFOND_ETAGE + 0.05, -62.15), Color(0.93, 0.93, 0.9))
+	# Nez de dalle côté remise, peint en rouge
+	Lot.boite_c(Vector3(70.0, 0.35, 0.22), Vector3(-250.0, HAUT + 0.05, -53.9), ROUGE)
+	# --- Escalier métallique le long du mur du fond, de x -268,4 (bas) à -274,4 (haut)
+	var n := 18
+	var montee := ETAGE / n
+	var giron := 6.0 / n
+	for k in n:
+		var x := -268.4 - giron * (k + 0.5)
+		Lot.boite_c(Vector3(giron + 0.02, 0.05, 1.2), Vector3(x, montee * (k + 1) - 0.025, -53.0), Color(0.45, 0.47, 0.5))
+		Lot.boite_c(Vector3(0.03, 0.1, 1.2), Vector3(x + giron * 0.5 - 0.02, montee * (k + 1) - 0.05, -53.0), JAUNE)
+	var pente := atan2(ETAGE, 6.0)
+	var longueur := sqrt(36.0 + ETAGE * ETAGE)
+	var b_rampe := Basis(Vector3.BACK, -pente)
+	for sz in [-53.62, -52.38]:
+		Lot.boite_c(Vector3(longueur, 0.3, 0.06), Vector3(-271.4, ETAGE * 0.5 - 0.1, sz), gris_fonce, b_rampe)
+	# Main courante côté remise
+	Lot.boite_c(Vector3(longueur, 0.05, 0.05), Vector3(-271.4, ETAGE * 0.5 + 0.95, -52.36), ROUGE, b_rampe)
+	for k in 4:
+		var xk := -268.6 - k * 1.9
+		var yk := (-268.4 - xk) / 6.0 * ETAGE
+		Lot.boite_c(Vector3(0.04, 1.0, 0.04), Vector3(xk, yk + 0.5, -52.36), gris_fonce)
+	# Rampe invisible pour monter en marchant
+	var corps := StaticBody3D.new()
+	corps.transform = Transform3D(b_rampe, Vector3(-271.4, ETAGE * 0.5 - 0.03, -53.0))
+	racine.add_child(corps)
+	var cs := CollisionShape3D.new()
+	var forme := BoxShape3D.new()
+	forme.size = Vector3(longueur, 0.06, 1.2)
+	cs.shape = forme
+	corps.add_child(cs)
+	# Palier en haut de l'escalier, posé sur un poteau
+	Geo.boite(racine, Vector3(2.0, 0.2, 1.7), Vector3(-275.4, ETAGE - 0.1, -53.15), Color(0.45, 0.47, 0.5))
+	Lot.boite_c(Vector3(0.12, ETAGE - 0.2, 0.12), Vector3(-276.3, (ETAGE - 0.2) * 0.5, -52.4), gris_fonce)
+	Lot.boite_c(Vector3(0.05, 1.0, 0.05), Vector3(-276.35, ETAGE + 0.5, -52.36), gris_fonce)
+	Lot.boite_c(Vector3(2.0, 0.05, 0.05), Vector3(-275.4, ETAGE + 1.0, -52.36), ROUGE)
+	_collision(racine, Vector3(2.0, 1.1, 0.08), Vector3(-275.4, ETAGE + 0.55, -52.36))
+	Lot.boite_c(Vector3(0.05, 1.0, 1.7), Vector3(-276.38, ETAGE + 0.5, -53.15), gris_fonce)
+	_collision(racine, Vector3(0.08, 1.1, 1.7), Vector3(-276.38, ETAGE + 0.55, -53.15))
+	# --- Garde-corps de la coursive (ouvert au droit du palier)
+	for seg in [[-285.0, -276.4], [-274.4, -215.0]]:
+		var a: float = seg[0]
+		var bb: float = seg[1]
+		var c := (a + bb) * 0.5
+		var l := bb - a
+		Lot.boite_c(Vector3(l, 0.06, 0.08), Vector3(c, ETAGE + 1.05, -54.05), ROUGE)
+		Lot.boite_c(Vector3(l, 0.04, 0.04), Vector3(c, ETAGE + 0.55, -54.05), gris_fonce)
+		Lot.boite_c(Vector3(l, 0.12, 0.04), Vector3(c, ETAGE + 0.06, -54.05), gris_fonce)
+		var xp := a
+		while xp <= bb + 0.01:
+			Lot.boite_c(Vector3(0.05, 1.05, 0.05), Vector3(xp, ETAGE + 0.52, -54.05), gris_fonce)
+			xp += 1.5
+		_collision(racine, Vector3(l, 1.1, 0.1), Vector3(c, ETAGE + 0.55, -54.05))
+	# --- Cloison des pièces de l'étage (coursive de 3 m devant)
+	var portes := [-279.0, -273.0, -267.0, -261.0, -255.0, -244.0, -228.0]
+	var trous: Array = []
+	for px in portes:
+		trous.append([px, 1.0, ETAGE, ETAGE + 2.15])
+	Geo.mur(racine, "x", -57.0, -285.0, -215.0, ETAGE, h, 0.15, CLOISON, trous)
+	for px in portes:
+		Lot.boite_c(Vector3(0.05, 2.15, 0.9), Vector3(px - 0.45, ETAGE + 1.075, -56.6), Color(0.75, 0.72, 0.66), Basis(Vector3.UP, 0.6))
+		for c in [-1.0, 1.0]:
+			Lot.boite_c(Vector3(0.06, 2.2, 0.2), Vector3(px + c * 0.53, ETAGE + 1.1, -57.0), Color(0.35, 0.35, 0.38))
+	# Cloisons entre les pièces
+	for x in [-276.0, -270.0, -264.0, -258.0, -252.0, -236.0]:
+		Geo.mur(racine, "z", x, -70.0, -57.0, ETAGE, h, 0.12, CLOISON)
+	# Plaques de porte et éclairage de la coursive
+	var noms := ["CHAMBRE 1", "CHAMBRE 2", "CHAMBRE 3", "CHAMBRE 4", "CHAMBRE 5", "SALLE DE REPOS", "RÉSERVE"]
+	for i in portes.size():
+		_ecriteau(racine, noms[i], Vector3(portes[i], ETAGE + 2.45, -56.9), 0.0)
+	for x in [-275.0, -255.0, -235.0]:
+		_lumiere_etage(racine, Vector3(x, 0, -55.5), 10.0, 0.4)
+	# --- Cinq chambres de garde
+	for i in 5:
+		var cx := -279.0 + i * 6.0
+		var ce := Vector3(cx, ETAGE, -63.5)
+		# Salle d'eau au fond de la chambre (cloison avec porte)
+		Geo.mur(racine, "x", -67.0, cx - 3.0, cx + 3.0, ETAGE, h, 0.12, CLOISON, [[cx + 1.6, 0.9, ETAGE, ETAGE + 2.1]])
+		Lot.boite_c(Vector3(0.9, 2.1, 0.04), Vector3(cx + 1.6, ETAGE + 1.05, -66.92), Color(0.75, 0.72, 0.66))
+		Lot.boite_c(Vector3(0.12, 0.03, 0.04), Vector3(cx + 1.25, ETAGE + 1.0, -66.88), METAL)
+		# Deux lits le long des murs latéraux, tête vers le fond
+		for cote in [-1.0, 1.0]:
+			var lit := Vector3(cx + cote * 1.9, ETAGE, -64.9)
+			_meuble(racine, Vector3(0.95, 0.45, 2.05), lit + Vector3(0, 0.23, 0), Color(0.3, 0.3, 0.33), true)
+			Lot.boite_c(Vector3(0.9, 0.14, 1.95), lit + Vector3(0, 0.52, 0), Color(0.95, 0.95, 0.95))
+			Lot.boite_c(Vector3(0.94, 0.07, 1.35), lit + Vector3(0, 0.6, 0.3), [MARINE, Color(0.5, 0.12, 0.1), Color(0.2, 0.35, 0.3)][(i + int(cote + 1.0)) % 3])
+			Lot.boite_c(Vector3(0.6, 0.1, 0.35), lit + Vector3(0, 0.64, -0.75), Color(0.97, 0.97, 0.97))
+			Lot.boite_c(Vector3(0.95, 0.8, 0.05), lit + Vector3(0, 0.6, -1.03), Color(0.3, 0.3, 0.33))
+			_meuble(racine, Vector3(0.45, 0.5, 0.4), lit + Vector3(-cote * 0.8, 0.25, -0.8), BOIS)
+			Lot.cylindre(0.08, 0.25, lit + Vector3(-cote * 0.8, 0.62, -0.8), Geo.mat(Color(1.0, 0.95, 0.8), 0.6))
+			# Cadre au-dessus du lit
+			Lot.boite_c(Vector3(0.04, 0.6, 0.8), lit + Vector3(cote * 0.56, 1.6, 0), Color(0.2, 0.2, 0.2))
+			Lot.boite_c(Vector3(0.045, 0.5, 0.7), lit + Vector3(cote * 0.555, 1.6, 0), [Color(0.4, 0.55, 0.7), Color(0.7, 0.5, 0.3)][i % 2])
+		# Armoire contre la cloison du fond, bureau et chaise près de la porte, tenue prête sur une patère
+		_meuble(racine, Vector3(1.6, 2.0, 0.55), Vector3(cx - 1.4, ETAGE + 1.0, -66.6), Color(0.6, 0.5, 0.38), true)
+		Lot.boite_c(Vector3(0.01, 1.9, 0.02), Vector3(cx - 1.4, ETAGE + 1.0, -66.32), Color(0.35, 0.28, 0.2))
+		_meuble(racine, Vector3(1.2, 0.04, 0.6), ce + Vector3(-2.2, 0.75, 4.6), BOIS)
+		for sx in [-0.55, 0.55]:
+			Lot.boite_c(Vector3(0.04, 0.75, 0.55), ce + Vector3(-2.2 + sx, 0.37, 4.6), METAL)
+		Lot.boite_c(Vector3(0.4, 0.3, 0.03), ce + Vector3(-2.3, 0.95, 4.75), Color(0.1, 0.1, 0.1))
+		_chaise(ce + Vector3(-2.2, 0, 3.9), 0.0)
+		_tenue_suspendue(ce + Vector3(2.75, 1.5, 4.0), -PI * 0.5)
+		_casque(ce + Vector3(-1.85, 0.79, 4.55))
+		Lot.boite_c(Vector3(1.6, 0.02, 1.0), ce + Vector3(0, 0.02, -1.0), [Color(0.55, 0.2, 0.18), Color(0.25, 0.3, 0.45)][i % 2])
+		_lumiere_etage(racine, ce, 6.5, 0.45)
+	# --- Salle de repos : canapés, télévision, table basse, baby-foot, frigo
+	var sr := Vector3(-244.0, ETAGE, -63.5)
+	for k in 2:
+		var pc := sr + Vector3(-4.0 + k * 3.0, 0, -4.8)
+		_meuble(racine, Vector3(2.4, 0.45, 0.9), pc + Vector3(0, 0.23, 0), Color(0.25, 0.3, 0.42), true)
+		Lot.boite_c(Vector3(2.4, 0.5, 0.2), pc + Vector3(0, 0.7, -0.4), Color(0.22, 0.27, 0.38))
+	_meuble(racine, Vector3(1.4, 0.4, 0.7), sr + Vector3(-2.5, 0.2, -2.6), BOIS)
+	_meuble(racine, Vector3(2.0, 0.5, 0.45), sr + Vector3(-2.5, 0.25, 2.0), Color(0.15, 0.15, 0.16))
+	Lot.boite_c(Vector3(1.6, 0.92, 0.06), sr + Vector3(-2.5, 1.2, 2.1), Color(0.03, 0.03, 0.04))
+	Lot.boite(Vector3(1.5, 0.84, 0.01), sr + Vector3(-2.5, 1.2, 2.06), Tex.emissif(Color(0.2, 0.35, 0.6), 0.6))
+	_meuble(racine, Vector3(1.4, 0.85, 0.8), sr + Vector3(4.0, 0.42, -1.0), Color(0.2, 0.35, 0.25), true)
+	Lot.boite_c(Vector3(1.2, 0.03, 0.7), sr + Vector3(4.0, 0.86, -1.0), Color(0.15, 0.5, 0.2))
+	for k in 4:
+		Lot.cylindre(0.015, 1.6, sr + Vector3(4.0, 0.8, -1.3 + k * 0.2), Geo.mat(METAL), Basis(Vector3.BACK, PI * 0.5))
+	_meuble(racine, Vector3(0.7, 1.8, 0.7), sr + Vector3(7.4, 0.9, -5.9), Color(0.9, 0.9, 0.9), true)
+	_panneau(racine, "ACTIVITÉS AMICALE", sr + Vector3(0, 1.6, -6.4), 0.0, 1.6, 1.0)
+	_lumiere_etage(racine, sr + Vector3(-2.0, 0, 0), 9.0, 0.5)
+	_lumiere_etage(racine, sr + Vector3(4.0, 0, 0), 9.0, 0.5)
+	# --- Réserve : rayonnages pleins (tenues neuves, consommables, cartons), palettes
+	var rv := Vector3(-225.5, ETAGE, -63.5)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 91
+	for r in 3:
+		var pr := rv + Vector3(-7.0 + r * 5.0, 0, -1.5)
+		_etagere(racine, pr, PI * 0.5, 8.0, 0.8, 2.6, 5)
+		for k in 5:
+			var y := 0.15 + k * 0.6 + 0.02
+			var z := -3.9
+			while z < 3.6:
+				var l := rng.randf_range(0.35, 0.7)
+				var hb := rng.randf_range(0.2, 0.45)
+				var c: Color = [Color(0.6, 0.48, 0.32), Color(0.65, 0.52, 0.35), Color(0.1, 0.13, 0.22), Color(0.85, 0.85, 0.85), Color(0.8, 0.15, 0.1), Color(0.2, 0.45, 0.75)][rng.randi() % 6]
+				Lot.boite_c(Vector3(0.7, hb, l), pr + Vector3(0, y + hb * 0.5, z + l * 0.5), c)
+				z += l + 0.06
+	for k in 2:
+		var pp := rv + Vector3(6.0 + k * 2.5, 0, 4.6)
+		Lot.boite_c(Vector3(1.2, 0.14, 0.8), pp + Vector3(0, 0.07, 0), BOIS)
+		for j in 3:
+			Lot.boite_c(Vector3(1.1, 0.4, 0.75), pp + Vector3(0, 0.34 + j * 0.42, 0), Color(0.62, 0.5, 0.34).darkened(j * 0.05))
+		_collision(racine, Vector3(1.2, 1.5, 0.8), pp + Vector3(0, 0.75, 0))
+	for x in [-232.0, -225.0, -218.0]:
+		_lumiere_etage(racine, Vector3(x, 0, -63.0), 9.0, 0.5)
+
+
+# ---------------------------------------------------------------------------
 # Remise des engins
 # ---------------------------------------------------------------------------
 
@@ -481,6 +656,7 @@ static func _remise(racine: Node3D) -> void:
 	var marquage := Geo.texte(racine, "VL CDG", Vector3(-222.0, 0.13, -24.8), 40, JAUNE, false)
 	marquage.rotation.x = -PI * 0.5
 	_materiel_vl(racine)
+	_fond_remise(racine)
 
 
 ## Matériel rangé autour du VL : armoire des lots, étagère de sacs, émulseur sur palette,
@@ -566,6 +742,84 @@ static func _materiel_vl(racine: Node3D) -> void:
 			Lot.boite_c(Vector3(0.05, 1.0, 0.05), rb + Vector3(sx, 0.5, 0.8 + i * 0.12), Color(0.85, 0.2, 0.1))
 	_collision(racine, Vector3(2.2, 1.0, 2.2), rb + Vector3(0, 0.5, 0.2))
 	_panneau(racine, "CONSIGNES VL CDG", Vector3(-215.0, 1.6, -28.2), -PI * 0.5, 1.4, 0.9)
+
+
+## Fond de la remise : barque sur remorque derrière le FPT, groupe électrogène derrière le VSAV,
+## rangée d'armoires à lots sur le mur du fond, coin de formation au secourisme.
+static func _fond_remise(racine: Node3D) -> void:
+	var axe_x := Basis(Vector3.BACK, PI * 0.5)
+	var noir := Color(0.08, 0.08, 0.08)
+	var gris := Color(0.42, 0.46, 0.5)
+	# Barque de sauvetage sur remorque, timon vers la porte
+	var br := Vector3(-238.0, 0, -48.5)
+	Lot.boite_c(Vector3(1.4, 0.12, 4.2), br + Vector3(0, 0.55, 0), Color(0.25, 0.25, 0.27))
+	for sx in [-0.8, 0.8]:
+		Lot.cylindre(0.32, 0.2, br + Vector3(sx, 0.32, 0.2), Lot.couleur(noir), axe_x)
+		Lot.cylindre(0.16, 0.21, br + Vector3(sx, 0.32, 0.2), Lot.couleur(METAL), axe_x)
+		Lot.boite_c(Vector3(0.25, 0.06, 0.9), br + Vector3(sx, 0.68, 0.2), gris)
+	Lot.boite_c(Vector3(0.08, 0.08, 1.6), br + Vector3(0, 0.5, 2.8), gris)
+	Lot.cylindre(0.07, 0.4, br + Vector3(0, 0.3, 3.5), Lot.couleur(METAL))
+	# Coque : fond, bordés et étrave
+	var coque := Color(0.92, 0.92, 0.9)
+	Lot.boite_c(Vector3(1.5, 0.12, 3.8), br + Vector3(0, 0.72, -0.1), coque)
+	for sx in [-0.78, 0.78]:
+		Lot.boite_c(Vector3(0.08, 0.55, 3.8), br + Vector3(sx, 1.0, -0.1), coque, Basis(Vector3.FORWARD, signf(sx) * 0.2))
+		Lot.boite_c(Vector3(0.1, 0.08, 3.8), br + Vector3(sx * 1.08, 1.28, -0.1), ROUGE)
+	Lot.boite_c(Vector3(1.4, 0.55, 0.08), br + Vector3(0, 1.0, -2.0), coque)
+	Lot.boite_c(Vector3(0.9, 0.55, 0.08), br + Vector3(0, 1.0, 1.95), coque, Basis(Vector3.RIGHT, -0.5))
+	Lot.boite_c(Vector3(1.5, 0.06, 0.3), br + Vector3(0, 1.05, -0.4), Color(0.55, 0.4, 0.26))
+	# Moteur hors-bord relevé à l'arrière
+	Lot.boite_c(Vector3(0.35, 0.5, 0.45), br + Vector3(0, 1.45, -2.25), Color(0.15, 0.15, 0.17))
+	Lot.boite_c(Vector3(0.12, 0.7, 0.15), br + Vector3(0, 0.9, -2.35), Color(0.2, 0.2, 0.22))
+	for k in 3:
+		Lot.boite_c(Vector3(0.45, 0.25, 0.3), br + Vector3(-0.3 + k * 0.3, 0.92, 0.6), Color(0.95, 0.45, 0.05))
+	_collision(racine, Vector3(1.8, 1.4, 4.6), br + Vector3(0, 0.7, 0))
+	var tb := Geo.texte(racine, "BLS", br + Vector3(0.84, 1.05, -0.3), 40, ROUGE, false)
+	tb.rotation.y = PI * 0.5
+	tb.outline_size = 0
+	# Groupe électrogène sur remorque derrière le VSAV
+	var ge := Vector3(-262.0, 0, -48.8)
+	Lot.boite_c(Vector3(1.3, 0.1, 2.0), ge + Vector3(0, 0.5, 0), Color(0.25, 0.25, 0.27))
+	for sx in [-0.75, 0.75]:
+		Lot.cylindre(0.3, 0.18, ge + Vector3(sx, 0.3, 0), Lot.couleur(noir), axe_x)
+	Lot.boite_c(Vector3(1.1, 0.95, 1.6), ge + Vector3(0, 1.03, 0), Color(0.85, 0.6, 0.1))
+	Lot.boite_c(Vector3(1.12, 0.06, 1.0), ge + Vector3(0, 1.0, 0.1), Color(0.2, 0.2, 0.2))
+	Lot.cylindre(0.05, 0.3, ge + Vector3(0.35, 1.6, -0.6), Lot.couleur(Color(0.2, 0.2, 0.2)))
+	Lot.boite_c(Vector3(0.08, 0.08, 1.2), ge + Vector3(0, 0.45, 1.5), gris)
+	# Mât d'éclairage replié sur le côté
+	Lot.boite_c(Vector3(0.08, 0.08, 1.9), ge + Vector3(-0.5, 1.6, 0), METAL)
+	Lot.boite_c(Vector3(0.5, 0.25, 0.15), ge + Vector3(-0.5, 1.7, 0.85), Color(0.15, 0.15, 0.15))
+	_collision(racine, Vector3(1.6, 1.6, 2.4), ge + Vector3(0, 0.8, 0.2))
+	# Rangée d'armoires à lots contre le mur du fond (entre la salle de garde et le poste de lavage)
+	var lots := ["LSPCC", "ÉPUISEMENT", "ÉCLAIRAGE", "BÂCHAGE", "TRONÇONNEUSE", "CORDES", "INONDATION"]
+	for i in lots.size():
+		var pa := Vector3(-247.5 + i * 1.05, 0, -53.45)
+		_meuble(racine, Vector3(1.0, 1.95, 0.6), pa + Vector3(0, 0.98, 0), gris if i % 2 == 0 else gris.darkened(0.1), true)
+		Lot.boite_c(Vector3(0.01, 1.85, 0.02), pa + Vector3(0, 0.98, 0.31), Color(0.2, 0.2, 0.22))
+		Lot.boite_c(Vector3(0.03, 0.18, 0.03), pa + Vector3(0.08, 1.05, 0.32), METAL)
+		Lot.boite_c(Vector3(0.9, 0.16, 0.01), pa + Vector3(0, 1.75, 0.31), ROUGE)
+		var t := Geo.texte(racine, lots[i], pa + Vector3(0, 1.75, 0.32), 16, Color.WHITE, false)
+		t.outline_size = 0
+		t.pixel_size = 0.004
+	# Coin formation secourisme : tapis, mannequins, défibrillateur d'entraînement, chaises, paperboard
+	var fo := Vector3(-272.0, 0, -38.0)
+	Lot.boite_c(Vector3(4.0, 0.04, 3.0), fo + Vector3(0, 0.14, 0), Color(0.2, 0.4, 0.7))
+	for k in 2:
+		var pm := fo + Vector3(-1.0 + k * 2.0, 0.16, -0.3)
+		Lot.boite_c(Vector3(0.45, 0.2, 0.7), pm + Vector3(0, 0.1, 0), Color(0.85, 0.72, 0.62))
+		Lot.boite_c(Vector3(0.36, 0.18, 0.7), pm + Vector3(0, 0.09, 0.7), Color(0.15, 0.25, 0.5))
+		Lot.sphere(0.12, pm + Vector3(0, 0.1, -0.5), Lot.couleur(Color(0.85, 0.72, 0.62)))
+		Lot.boite_c(Vector3(0.3, 0.08, 0.22), pm + Vector3(0.45, 0.04, 0.0), Color(0.95, 0.85, 0.1))
+	for k in 6:
+		_chaise(fo + Vector3(-2.5 + k * 1.0, 0, 2.6), PI)
+	Lot.boite_c(Vector3(0.9, 1.2, 0.04), fo + Vector3(2.6, 1.3, -1.0), Color(0.97, 0.97, 0.97), Basis(Vector3.UP, -0.6))
+	for sx in [-0.4, 0.4]:
+		Lot.boite_c(Vector3(0.04, 1.7, 0.04), fo + Vector3(2.6 + sx * 0.82, 0.85, -1.0 + sx * 0.56), gris)
+	Lot.boite_c(Vector3(0.5, 0.3, 0.01), fo + Vector3(2.6, 1.5, -0.97), Color(0.8, 0.1, 0.1), Basis(Vector3.UP, -0.6))
+	# Bac de désinfection et sacs de linge sale près des douches du VSAV
+	Lot.boite_c(Vector3(1.2, 0.8, 0.7), Vector3(-257.0, 0.4, -53.3), Color(0.85, 0.85, 0.82))
+	for k in 3:
+		Lot.sphere(0.35, Vector3(-259.8 + k * 0.6, 0.35, -53.2), Lot.couleur([Color(0.8, 0.15, 0.1), Color(0.95, 0.85, 0.1), Color(0.2, 0.35, 0.7)][k]), 1.2)
 
 
 static func _salle_de_sport(racine: Node3D) -> void:
