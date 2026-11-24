@@ -142,6 +142,9 @@ static func _fenetres(rng: RandomNumberGenerator, pied: Vector3, b: Basis, l: fl
 				Lot.boite(Vector3(0.24, 0.3, 0.17), _p(pied, b, a, y0 + h + 0.12, 0.085), pierre, b)
 			# Appui saillant
 			Lot.boite(Vector3(w + 0.5, 0.09, 0.26), _p(pied, b, a, y0 - 0.06, 0.13), pierre, b)
+			# Jardinière de géraniums sur certains appuis côté rue
+			if rue and not porte_fenetre and rv().randf() < 0.16:
+				jardiniere_fenetre(_p(pied, b, a, y0, 0.2), b, w)
 			# Dormant blanc, vitrage, petits bois
 			Lot.boite(Vector3(w, h, 0.03), _p(pied, b, a, yc, 0.015), cadre, b)
 			Lot.boite(Vector3(w - 0.12, h - 0.12, 0.03), _p(pied, b, a, yc, 0.03), Tex.vitrage(rng.randi() % 4), b)
@@ -159,6 +162,18 @@ static func _fenetres(rng: RandomNumberGenerator, pied: Vector3, b: Basis, l: fl
 				else:
 					for c in [-1.0, 1.0]:
 						Lot.boite(Vector3(w * 0.5, h, 0.04), _p(pied, b, a + c * (w * 0.75 + 0.2), yc, 0.04), mat_volet, b)
+
+
+const GERANIUMS: Array = [Color(0.95, 0.25, 0.3), Color(0.98, 0.45, 0.6), Color(0.95, 0.95, 0.92), Color(0.85, 0.2, 0.55)]
+
+
+## Jardinière posée sur un appui de fenêtre, avec des fleurs qui débordent.
+static func jardiniere_fenetre(p: Vector3, b: Basis, w: float) -> void:
+	var va := rv()
+	Lot.boite(Vector3(w * 0.9, 0.18, 0.2), p + Vector3(0, 0.09, 0), Lot.couleur(Color(0.62, 0.32, 0.2) if va.randf() < 0.6 else Color(0.2, 0.3, 0.22)), b)
+	var fleur: Color = GERANIUMS[va.randi() % GERANIUMS.size()]
+	Lot.feuillage(p + Vector3(0, 0.28, 0), Vector3(w * 0.45, 0.14, 0.14), 7, 0.17, Tex.mat_rameau(Color(0.45, 0.6, 0.3)), va)
+	Lot.feuillage(p + Vector3(0, 0.33, 0), Vector3(w * 0.42, 0.1, 0.12), 5, 0.13, Tex.mat_rameau(fleur), va)
 
 
 ## Pierres de tuffeau, enduits et volets du centre ancien.
@@ -582,18 +597,19 @@ static func arbre(pos: Vector3, taille: float, rng: RandomNumberGenerator, plata
 	# Houppier : un cœur sombre (on ne voit pas à travers) et une couronne de rameaux feuillus
 	var va := rv()
 	var coeur := Tex.mat_feuillage(feuille.albedo_color.darkened(0.3))
-	Lot.sphere(R * 0.72, cime, coeur, 0.8)
+	Lot.sphere(R * 0.58, cime, coeur, 0.8)
 	var n := 4 + va.randi() % 3
 	for k in n:
 		var ang := k * TAU / n + va.randf_range(-0.3, 0.3)
-		var d := R * va.randf_range(0.45, 0.65)
+		var d := R * va.randf_range(0.4, 0.55)
 		var p := cime + Vector3(cos(ang) * d, va.randf_range(-0.3, 0.35) * R, sin(ang) * d)
-		Lot.sphere(R * va.randf_range(0.4, 0.52), p, coeur, va.randf_range(0.7, 0.9))
+		Lot.sphere(R * va.randf_range(0.3, 0.4), p, coeur, va.randf_range(0.7, 0.9))
 	var cartes := Tex.mat_rameau(feuille.albedo_color.lightened(0.05))
 	var cartes2 := Tex.mat_rameau(feuille2.albedo_color)
-	var nb := int(70 * clampf(taille, 0.6, 1.5))
+	var nb := int(95 * clampf(taille, 0.6, 1.5))
 	Lot.feuillage(cime, Vector3(R * 1.05, R * 0.85, R * 1.05), nb, R * 0.3, cartes, va)
 	Lot.feuillage(cime + Vector3(0, R * 0.25, 0), Vector3(R * 0.85, R * 0.7, R * 0.85), nb / 2, R * 0.28, cartes2, va)
+	Lot.feuillage(cime - Vector3(0, R * 0.1, 0), Vector3(R * 0.7, R * 0.6, R * 0.7), nb / 2, R * 0.3, cartes, va)
 
 
 static var _rv: RandomNumberGenerator = null

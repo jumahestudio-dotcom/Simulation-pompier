@@ -32,7 +32,11 @@ func _ready() -> void:
 			["v10_square", Vector3(-30, 5, 370), Vector3(-70, 0, 330)],
 			["v11_placette", Vector3(-296, 1.8, -36), Vector3(-312, 1.2, -70)],
 			["v12_jardins", Vector3(60, 9, -200), Vector3(85, 0, -232)],
-			["v13_coeur_ilot", Vector3(-150, 14, -60), Vector3(-120, 0, -90)]]:
+			["v13_coeur_ilot", Vector3(-150, 14, -60), Vector3(-120, 0, -90)],
+			["v14_rocade", Vector3(-406, 3.0, 62), Vector3(-420, 1.0, 0)],
+			["v15_cher", Vector3(-150, 3.0, 154), Vector3(-90, 0, 168)],
+			["v16_parking", Vector3(-140, 6, -158), Vector3(-125, 0, -182)],
+			["v17_facades", Vector3(-110, 1.8, -2), Vector3(-80, 6, -14)]]:
 		if args.size() > 1 and not args[1].split(",").has(String(v[0]).get_slice("_", 0)):
 			continue
 		cam.global_position = v[1]

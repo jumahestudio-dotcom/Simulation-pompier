@@ -12,6 +12,7 @@ const VoitureModele = preload("res://scripts/voiture_modele.gd")
 const Caserne = preload("res://scripts/caserne.gd")
 const Modeles = preload("res://scripts/modeles3d.gd")
 const Verdure = preload("res://scripts/verdure.gd")
+const Agrement = preload("res://scripts/agrement.gd")
 
 const TUFFEAU: Array = [Color(0.95, 0.91, 0.80), Color(0.90, 0.86, 0.75), Color(1.0, 0.97, 0.88), Color(0.86, 0.81, 0.70)]
 const ARDOISE := Color(0.27, 0.30, 0.35)
@@ -91,6 +92,7 @@ static func construire(racine: Node3D) -> void:
 			_coeur_ilot(racine, rng, Rect2(bx[0] + 26.0, bz[0] + 26.0, bx[1] - bx[0] - 52.0, bz[1] - bz[0] - 52.0))
 	Details.mobilier_centre(racine, rng)
 	Details.mobilier_plus(racine)
+	Agrement.construire(racine)
 	_voitures_garees(racine, rng)
 	Quartiers.construire(racine)
 	_caserne(racine)
@@ -227,6 +229,7 @@ static func _coeur_ilot(racine: Node3D, rng: RandomNumberGenerator, r: Rect2) ->
 		Details.arbre(p, rng.randf_range(0.8, 1.3), rng)
 	# Arbustes le long des murets, herbe haute dans les jardins
 	var rv := Details.rv()
+	_lierre(Vector3(c.x, 0, c.y), r.size.x, true, rv)
 	for k in int(r.size.x / 2.5):
 		var pa := Vector3(rv.randf_range(r.position.x + 1.5, r.end.x - 1.5), 0.08, c.y + (1.2 if k % 2 == 0 else -1.2))
 		Details.arbuste(pa, rv.randf_range(0.9, 1.9), rv)
@@ -252,6 +255,24 @@ static func _coeur_ilot(racine: Node3D, rng: RandomNumberGenerator, r: Rect2) ->
 		var p2 := Vector3(rng.randf_range(r.position.x + 6.0, r.end.x - 6.0), 0, rng.randf_range(r.position.y + 5.0, r.end.y - 5.0))
 		Geo.boite_mat(racine, Vector3(l, 3.0, 6.0), p2 + Vector3(0, 1.5, 0), Tex.mat_facade(TUFFEAU[k % TUFFEAU.size()]))
 		Geo.toit(racine, l, 6.4, 1.8, p2 + Vector3(0, 3.0, 0), Tex.mat_ardoise(), true)
+
+
+## Lierre en plaques sur les deux faces d'un muret de 1,8 m (le long de x si le_long_de_x).
+static func _lierre(centre: Vector3, l: float, le_long_de_x: bool, rv: RandomNumberGenerator) -> void:
+	var m := Tex.mat_rameau(Color(0.32, 0.45, 0.24))
+	var ax := Vector3.RIGHT if le_long_de_x else Vector3.BACK
+	var tr := Vector3.BACK if le_long_de_x else Vector3.RIGHT
+	var a := -l * 0.5 + rv.randf_range(1.0, 8.0)
+	while a < l * 0.5 - 2.0:
+		var larg := rv.randf_range(2.0, 6.0)
+		var cote := 1.0 if rv.randf() < 0.5 else -1.0
+		for k in int(larg * 9.0):
+			var p := centre + ax * (a + rv.randf_range(0.0, larg)) + tr * cote * rv.randf_range(0.21, 0.27) + Vector3.UP * rv.randf_range(0.3, 1.75)
+			var s := rv.randf_range(0.25, 0.4)
+			var u := ax * s
+			var v := Vector3.UP * s
+			Lot.carte([p - u - v, p + u - v, p + u + v, p - u + v], (tr * cote + Vector3.UP * 0.2).normalized(), m)
+		a += larg + rv.randf_range(4.0, 14.0)
 
 
 static func _mat_muret() -> Material:
