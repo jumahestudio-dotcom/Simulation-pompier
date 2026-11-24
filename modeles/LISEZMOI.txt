@@ -15,7 +15,8 @@ Utilisés aujourd'hui :
   propane_and_gas_tanks_set_-_game_ready.glb   stock de gaz de l'usine
   skoda_kodiaq_2024.glb                  VL du chef de garde (rouge, sans logo ni plaque)
   skoda_octavia_combi_2024.glb           voitures du parking du personnel (sans logo)
-  street_objects_pack_1_revamped.glb     bancs, poubelles, jardinières, poteaux incendie
+  street_objects_pack_1_revamped.glb     bancs, poubelles, jardinières, poteaux incendie,
+                                         regards, grilles d'arbres, arceaux à vélos, bacs à fleurs, coffrets
   damaged_firehydrant.glb                poteau incendie accidenté près de la caserne
   tree_low_poly_lowpoly.glb              arbres du square de la Mairie
   scanned_plants_and_grass_free_download.glb   massifs du square

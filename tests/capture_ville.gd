@@ -28,7 +28,13 @@ func _ready() -> void:
 			["v6_lotissement", Vector3(55, 1.8, -224), Vector3(90, 2.0, -230)],
 			["v7_zone_activites", Vector3(380, 70, 120), Vector3(520, 0, -40)],
 			["v8_vue_ensemble", Vector3(120, 330, 620), Vector3(80, 0, -60)],
-			["v9_rue_laterale", Vector3(-55, 1.8, 60), Vector3(-55, 3, 100)]]:
+			["v9_rue_laterale", Vector3(-55, 1.8, 60), Vector3(-55, 3, 100)],
+			["v10_square", Vector3(-30, 5, 370), Vector3(-70, 0, 330)],
+			["v11_placette", Vector3(-296, 1.8, -36), Vector3(-312, 1.2, -70)],
+			["v12_jardins", Vector3(60, 9, -200), Vector3(85, 0, -232)],
+			["v13_coeur_ilot", Vector3(-150, 14, -60), Vector3(-120, 0, -90)]]:
+		if args.size() > 1 and not args[1].split(",").has(String(v[0]).get_slice("_", 0)):
+			continue
 		cam.global_position = v[1]
 		cam.look_at(v[2])
 		await _attendre(0.6)

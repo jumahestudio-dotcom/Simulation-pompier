@@ -9,6 +9,7 @@ const VoitureModele = preload("res://scripts/voiture_modele.gd")
 const Details = preload("res://scripts/details.gd")
 const Nature = preload("res://scripts/nature.gd")
 const Modeles = preload("res://scripts/modeles3d.gd")
+const Verdure = preload("res://scripts/verdure.gd")
 
 const COULEURS_VOITURES: Array = [Color(0.15, 0.2, 0.4), Color(0.6, 0.6, 0.62), Color(0.08, 0.08, 0.1), Color(0.5, 0.1, 0.1), Color(0.85, 0.85, 0.85), Color(0.3, 0.35, 0.3), Color(0.75, 0.7, 0.6)]
 
@@ -146,8 +147,12 @@ static func _maison(racine: Node3D, avant: Vector3, face: float, rng: RandomNumb
 			_voiture(racine, Vector3(gx, 0, avant.z - face * 3.2), COULEURS_VOITURES[rng.randi() % COULEURS_VOITURES.size()], 0.0)
 	# Haie ou muret le long de la rue, avec une ouverture
 	var haie := Color(0.18, 0.32, 0.14) if rng.randf() < 0.7 else Color(0.85, 0.83, 0.78)
-	Lot.boite_c(Vector3(6.0, 1.1, 0.6), avant + Vector3(-4.5, 0.55, -face * 0.4), haie)
-	Lot.boite_c(Vector3(4.0, 1.1, 0.6), avant + Vector3(5.5, 0.55, -face * 0.4), haie)
+	if haie.r < 0.3:
+		Details.haie(avant + Vector3(-4.5, 0.55, -face * 0.4), 6.0, 1.1, 0.6, true, Details.rv())
+		Details.haie(avant + Vector3(5.5, 0.55, -face * 0.4), 4.0, 1.1, 0.6, true, Details.rv())
+	else:
+		Lot.boite_c(Vector3(6.0, 1.1, 0.6), avant + Vector3(-4.5, 0.55, -face * 0.4), haie)
+		Lot.boite_c(Vector3(4.0, 1.1, 0.6), avant + Vector3(5.5, 0.55, -face * 0.4), haie)
 	Details.maison(rng, centre, face, larg, prof, h, etage, avant, haie)
 	if rng.randf() < 0.5:
 		_arbre(racine, centre + Vector3(rng.randf_range(-4, 4), 0, -face * (prof * 0.5 + 6.0)), rng, rng.randf_range(0.7, 1.0))
@@ -236,7 +241,7 @@ static func _pavillons_nord(racine: Node3D, rng: RandomNumberGenerator) -> void:
 					_maison(racine, Vector3(x, 0, zl + cote * 4.0), -cote, rng)
 					x += rng.randf_range(15.0, 19.0)
 		for zh in [-190.0, -260.0, -333.0, -397.0]:
-			Geo.boite_mat(racine, Vector3(x1 - x0 - 4.0, 1.6, 0.9), Vector3((x0 + x1) * 0.5, 0.8, zh), Tex.plaque("herbe", Tex.herbe(), 2.0, 2.0, Color(0.45, 0.7, 0.35)), false)
+			Details.haie(Vector3((x0 + x1) * 0.5, 0.8, zh), x1 - x0 - 4.0, 1.6, 0.9, true, Details.rv(), Color(0.26, 0.4, 0.2))
 			# Quelques arbres fruitiers dans les jardins
 			var xa: float = x0 + rng.randf_range(5.0, 20.0)
 			while xa < x1 - 5.0:
