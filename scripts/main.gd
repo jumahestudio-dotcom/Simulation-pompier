@@ -106,6 +106,7 @@ func _ready() -> void:
 	_entrees()
 	_environnement()
 	Monde.construire(self)
+	_naviguer()
 	feu = Feu.new()
 	add_child(feu)
 	feu.preparer()
@@ -305,6 +306,37 @@ void sky() {
 	m.shader = sh
 	m.set_shader_parameter("bruit", ImageTexture.create_from_image(img))
 	return m
+
+
+## Zones où les collègues trouvent leur chemin en contournant les murs (portes, couloirs) :
+## la caserne et les lieux d'intervention. Le maillage de navigation est calculé au
+## démarrage à partir des murs et obstacles solides (avant d'ajouter les engins).
+const ZONES_NAVIGATION: Array = [
+	AABB(Vector3(-345, -1, -125), Vector3(195, 6, 150)),   # caserne et boulevard devant
+	AABB(Vector3(225, -1, -125), Vector3(75, 6, 70)),      # maison du malaise (rue des Tanneurs)
+	AABB(Vector3(125, -1, -25), Vector3(80, 6, 55)),       # boulevard, malaise sur la voie publique
+	AABB(Vector3(-80, -1, -125), Vector3(75, 5, 70)),      # pied de l'immeuble du feu
+	AABB(Vector3(140, -1, 222), Vector3(90, 6, 50)),       # entrée des urgences
+]
+
+
+func _naviguer() -> void:
+	var source := NavigationMeshSourceGeometryData3D.new()
+	var modele := NavigationMesh.new()
+	modele.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
+	NavigationServer3D.parse_source_geometry_data(modele, source, self)
+	for zone in ZONES_NAVIGATION:
+		var nm := NavigationMesh.new()
+		nm.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
+		nm.agent_radius = 0.25
+		nm.agent_height = 1.75
+		nm.agent_max_climb = 0.25
+		nm.agent_max_slope = 40.0
+		nm.filter_baking_aabb = zone
+		NavigationServer3D.bake_from_source_geometry_data(nm, source)
+		var region := NavigationRegion3D.new()
+		region.navigation_mesh = nm
+		add_child(region)
 
 
 func _charger_referentiel() -> void:
