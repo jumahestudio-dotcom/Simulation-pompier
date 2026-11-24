@@ -43,6 +43,9 @@ static func construire(racine: Node3D) -> void:
 			Lot.arbre_feuillu(pa, rng.randf_range(0.8, 1.2), _feuillage(rng), Lot.couleur(Color(0.42, 0.33, 0.24)))
 	# Prés clôturés avec des vaches, à l'ouest de la rocade, et bosquets dans la campagne
 	_pres(racine, rng)
+	var rng_ferme := RandomNumberGenerator.new()
+	rng_ferme.seed = 77
+	_ferme(racine, rng_ferme)
 	for k in 10:
 		var bc := Vector2(rng.randf_range(-860, -480), rng.randf_range(-620, 620))
 		if absf(bc.y - 180.0) > 50.0:
@@ -426,3 +429,140 @@ static func _residence(racine: Node3D, rng: RandomNumberGenerator, c: Vector3) -
 		Lot.boite_c(Vector3(0.1, 0.02, 4.5), c + Vector3(-13.75 + k * 2.75, 0.09, -13.5), Color(0.9, 0.9, 0.9))
 	Lot.boite_c(Vector3(30, 1.4, 0.8), c + Vector3(0, 0.7, 11), Color(0.2, 0.34, 0.16))
 
+
+
+## Dépendances de la ferme (maison et grange posées par quartiers.gd) : grand hangar à foin ouvert,
+## plein de bottes de paille (feux de récolte), stabulation couverte et enclos avec les bêtes.
+static func _ferme(racine: Node3D, rng: RandomNumberGenerator) -> void:
+	var acier := Color(0.35, 0.38, 0.4)
+	var tole := Color(0.42, 0.48, 0.45)
+	var paille := Color(0.86, 0.74, 0.42)
+	# --- Hangar à foin : 36 m x 16 m, 8 m sous gouttière, toit à deux pans, ouvert sur les côtés
+	var hc := Vector3(-582.0, 0, -100.0)
+	var hl := 36.0
+	var hp := 16.0
+	var hh := 8.0
+	var x := -hl * 0.5
+	while x <= hl * 0.5 + 0.1:
+		for sz in [-hp * 0.5, hp * 0.5]:
+			Lot.boite_c(Vector3(0.3, hh, 0.3), hc + Vector3(x, hh * 0.5, sz), acier)
+			var poteau := StaticBody3D.new()
+			poteau.position = hc + Vector3(x, hh * 0.5, sz)
+			racine.add_child(poteau)
+			var cp := CollisionShape3D.new()
+			var fp := BoxShape3D.new()
+			fp.size = Vector3(0.3, hh, 0.3)
+			cp.shape = fp
+			poteau.add_child(cp)
+		# Ferme de charpente métallique
+		Lot.boite_c(Vector3(0.2, 0.4, hp), hc + Vector3(x, hh, 0), acier)
+		x += 6.0
+	var pente := atan2(2.5, hp * 0.5)
+	for cote in [-1.0, 1.0]:
+		var b := Basis(Vector3.RIGHT, cote * pente)
+		Lot.boite_c(Vector3(hl + 1.0, 0.08, hp * 0.5 / cos(pente) + 0.8), hc + Vector3(0, hh + 1.25, cote * hp * 0.25), tole, b)
+		# Bardage haut sur les longs pans, le bas reste ouvert
+		Lot.boite_c(Vector3(hl, 2.0, 0.06), hc + Vector3(0, hh - 1.0, cote * hp * 0.5), tole)
+	# Pignon fermé côté ouest
+	Lot.boite_c(Vector3(0.06, hh - 2.0, hp), hc + Vector3(-hl * 0.5, (hh - 2.0) * 0.5 + 2.0, 0), tole)
+	Lot.boite_c(Vector3(0.6, 0.02, hp - 1.0), hc + Vector3(0, 0.085, 0), Color(0.45, 0.42, 0.36))
+	# Bottes carrées empilées sur 4 rangs dans la moitié ouest, bottes rondes dans la moitié est
+	for i in 7:
+		for j in 6:
+			for k in 4:
+				if k == 3 and (i + j) % 3 == 0:
+					continue
+				var p := hc + Vector3(-hl * 0.5 + 1.6 + i * 2.45, 0.5 + k * 0.92, -hp * 0.5 + 1.6 + j * 1.25)
+				Lot.boite_c(Vector3(2.4, 0.9, 1.2), p, paille.darkened(rng.randf_range(0.0, 0.12)))
+	var tas := StaticBody3D.new()
+	tas.position = hc + Vector3(-hl * 0.5 + 9.0, 1.8, 0)
+	racine.add_child(tas)
+	var ct := CollisionShape3D.new()
+	var ft := BoxShape3D.new()
+	ft.size = Vector3(17.5, 3.6, 7.6)
+	ct.shape = ft
+	tas.add_child(ct)
+	for i in 5:
+		for j in 2:
+			for k in 2:
+				var pr := hc + Vector3(3.0 + i * 1.85 + k * 0.9, 0.85 + k * 1.45, -4.2 + j * 6.5)
+				Lot.cylindre(0.8, 1.25, pr, Lot.couleur(paille.darkened(rng.randf_range(0.02, 0.15))), Basis(Vector3.BACK, PI * 0.5))
+	var tas2 := StaticBody3D.new()
+	tas2.position = hc + Vector3(7.5, 1.5, 0)
+	racine.add_child(tas2)
+	var ct2 := CollisionShape3D.new()
+	var ft2 := BoxShape3D.new()
+	ft2.size = Vector3(10.0, 3.0, 13.0)
+	ct2.shape = ft2
+	tas2.add_child(ct2)
+	# Quelques bottes rondes stockées dehors, sous bâche
+	for i in 4:
+		var po := hc + Vector3(-12.0 + i * 1.7, 0.8, hp * 0.5 + 4.0)
+		Lot.cylindre(0.8, 1.25, po, Lot.couleur(Color(0.12, 0.12, 0.12)), Basis(Vector3.BACK, PI * 0.5))
+	# Tracteur garé devant le hangar
+	_tracteur(hc + Vector3(14.0, 0, hp * 0.5 + 5.0), PI * 0.5)
+	# --- Stabulation couverte et enclos des bêtes, au sud de la grange
+	var sc := Vector3(-640.0, 0, -77.0)
+	Lot.boite_c(Vector3(26.0, 0.15, 12.0), sc + Vector3(0, 0.075, 0), Color(0.62, 0.6, 0.56))
+	for sx in [-13.0, -6.5, 0.0, 6.5, 13.0]:
+		for sz in [-6.0, 6.0]:
+			Lot.boite_c(Vector3(0.25, 5.0 if sz < 0.0 else 4.0, 0.25), sc + Vector3(sx, (5.0 if sz < 0.0 else 4.0) * 0.5, sz), acier)
+	Lot.boite_c(Vector3(27.0, 0.08, 13.2), sc + Vector3(0, 4.6, 0), tole, Basis(Vector3.RIGHT, atan2(1.0, 12.0)))
+	Lot.boite_c(Vector3(26.0, 3.0, 0.15), sc + Vector3(0, 1.5, -6.0), Color(0.55, 0.3, 0.22))
+	# Cornadis (barrière d'alimentation) et couloir de foin
+	for i in 40:
+		Lot.boite_c(Vector3(0.05, 1.2, 0.05), sc + Vector3(-12.5 + i * 0.64, 0.75, -3.6), Color(0.75, 0.6, 0.1))
+	Lot.boite_c(Vector3(25.5, 0.06, 0.06), sc + Vector3(0, 1.35, -3.6), Color(0.75, 0.6, 0.1))
+	Lot.boite_c(Vector3(24.0, 0.3, 1.2), sc + Vector3(0, 0.3, -4.6), paille)
+	for i in 6:
+		_vache(sc + Vector3(-10.0 + i * 4.0 + rng.randf_range(-0.6, 0.6), 0.15, -1.8), PI, rng)
+	# Enclos en bois devant la stabulation
+	var en := Rect2(-654.0, -71.0, 28.0, 20.0)
+	var bois := Color(0.45, 0.33, 0.2)
+	var px := en.position.x
+	while px <= en.end.x + 0.01:
+		Lot.boite_c(Vector3(0.18, 1.4, 0.18), Vector3(px, 0.7, en.end.y), bois)
+		px += 2.8
+	var pz := en.position.y
+	while pz <= en.end.y + 0.01:
+		for xx in [en.position.x, en.end.x]:
+			Lot.boite_c(Vector3(0.18, 1.4, 0.18), Vector3(xx, 0.7, pz), bois)
+		pz += 2.5
+	for h in [0.5, 0.9, 1.3]:
+		Lot.boite_c(Vector3(en.size.x - 4.0, 0.12, 0.06), Vector3(en.get_center().x + 2.0, h, en.end.y), bois)
+		for xx in [en.position.x, en.end.x]:
+			Lot.boite_c(Vector3(0.06, 0.12, en.size.y), Vector3(xx, h, en.get_center().y), bois)
+	# Barrière métallique (portail) à l'angle ouest
+	Lot.boite_c(Vector3(4.0, 1.1, 0.05), Vector3(en.position.x + 2.0, 0.7, en.end.y), Color(0.55, 0.58, 0.6))
+	Lot.boite_c(Vector3(en.size.x, 0.02, en.size.y), Vector3(en.get_center().x, 0.08, en.get_center().y), Color(0.38, 0.45, 0.25))
+	Lot.boite_c(Vector3(3.0, 0.6, 0.8), Vector3(en.end.x - 3.0, 0.3, en.get_center().y), Color(0.6, 0.6, 0.62))
+	Lot.boite_c(Vector3(2.8, 0.05, 0.6), Vector3(en.end.x - 3.0, 0.58, en.get_center().y), Color(0.3, 0.42, 0.5))
+	for k in 7:
+		_vache(Vector3(rng.randf_range(en.position.x + 3, en.end.x - 3), 0.0, rng.randf_range(en.position.y + 3, en.end.y - 3)), rng.randf() * TAU, rng)
+	# Râtelier à foin et botte ronde dans l'enclos
+	Lot.cylindre(1.0, 1.0, Vector3(-640.0, 0.6, -60.0), Lot.couleur(paille))
+	for i in 10:
+		var a := i * TAU / 10.0
+		Lot.boite_c(Vector3(0.05, 1.3, 0.05), Vector3(-640.0 + cos(a) * 1.15, 0.65, -60.0 + sin(a) * 1.15), Color(0.2, 0.35, 0.25))
+	Lot.cylindre(1.15, 0.06, Vector3(-640.0, 1.3, -60.0), Lot.couleur(Color(0.2, 0.35, 0.25)))
+	# Fumière
+	Lot.boite_c(Vector3(8.0, 1.2, 0.3), Vector3(-662.0, 0.6, -84.0), Color(0.6, 0.6, 0.58))
+	Lot.sphere(3.0, Vector3(-662.0, 0.0, -80.5), Lot.couleur(Color(0.3, 0.22, 0.14)), 0.45)
+
+
+## Tracteur agricole simple (grandes roues arrière, cabine vitrée), avant vers "angle".
+static func _tracteur(p: Vector3, angle: float) -> void:
+	var b := Basis(Vector3.UP, angle)
+	var vert := Color(0.2, 0.45, 0.2)
+	var noir := Color(0.08, 0.08, 0.08)
+	var axe := b * Basis(Vector3.BACK, PI * 0.5)
+	Lot.boite_c(Vector3(1.1, 1.0, 2.6), p + b * Vector3(0, 1.3, -0.8), vert, b)
+	Lot.boite_c(Vector3(1.6, 0.5, 1.8), p + b * Vector3(0, 1.3, 1.0), vert.darkened(0.2), b)
+	Lot.boite_c(Vector3(1.5, 1.4, 1.6), p + b * Vector3(0, 2.3, 1.0), Color(0.25, 0.35, 0.4), b)
+	Lot.boite_c(Vector3(1.6, 0.1, 1.7), p + b * Vector3(0, 3.05, 1.0), vert, b)
+	Lot.cylindre(0.07, 1.0, p + b * Vector3(0.35, 2.3, -1.6), Lot.couleur(noir))
+	for sx in [-0.95, 0.95]:
+		Lot.cylindre(0.85, 0.55, p + b * Vector3(sx, 0.85, 1.2), Lot.couleur(noir), axe)
+		Lot.cylindre(0.45, 0.56, p + b * Vector3(sx, 0.85, 1.2), Lot.couleur(Color(0.85, 0.7, 0.1)), axe)
+		Lot.cylindre(0.5, 0.4, p + b * Vector3(sx * 0.85, 0.5, -1.6), Lot.couleur(noir), axe)
+		Lot.cylindre(0.25, 0.41, p + b * Vector3(sx * 0.85, 0.5, -1.6), Lot.couleur(Color(0.85, 0.7, 0.1)), axe)

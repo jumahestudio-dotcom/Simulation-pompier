@@ -53,6 +53,18 @@ static func _meuble(racine: Node3D, taille: Vector3, pos: Vector3, c: Color, sol
 		corps.add_child(cs)
 
 
+## Volume de collision seul (invisible).
+static func _collision(racine: Node3D, taille: Vector3, pos: Vector3) -> void:
+	var corps := StaticBody3D.new()
+	corps.position = pos
+	racine.add_child(corps)
+	var cs := CollisionShape3D.new()
+	var forme := BoxShape3D.new()
+	forme.size = taille
+	cs.shape = forme
+	corps.add_child(cs)
+
+
 static func _lumiere(racine: Node3D, pos: Vector3, portee: float, energie: float = 0.8) -> void:
 	var l := OmniLight3D.new()
 	l.position = pos
@@ -443,11 +455,14 @@ static func _remise(racine: Node3D) -> void:
 		# VL sur la base du SUV fourni : rampe bleue sur le toit et inscriptions jaunes
 		h_toit = 1.72
 		for cote in [-1.0, 1.0]:
-			var tx := Geo.texte(racine, "SAPEURS-POMPIERS", pos + Vector3(cote * 0.97, 0.85, 0.3), 26, JAUNE, false)
+			# Lettres d'environ 9 cm et 6 cm de haut, comme sur un vrai VL
+			var tx := Geo.texte(racine, "SAPEURS-POMPIERS", pos + Vector3(cote * 0.97, 0.84, 0.3), 26, JAUNE, false)
 			tx.rotation.y = cote * PI * 0.5
+			tx.pixel_size = 0.0035
 			tx.outline_size = 0
-			var ch := Geo.texte(racine, "CHEF DE GARDE", pos + Vector3(cote * 0.97, 0.68, 0.3), 20, JAUNE, false)
+			var ch := Geo.texte(racine, "CHEF DE GARDE", pos + Vector3(cote * 0.97, 0.74, 0.3), 20, JAUNE, false)
 			ch.rotation.y = cote * PI * 0.5
+			ch.pixel_size = 0.0032
 			ch.outline_size = 0
 	else:
 		VoitureModele.garer(Lot, "break", Color(0.72, 0.06, 0.05), pos, Basis(Vector3.UP, PI))
@@ -465,6 +480,92 @@ static func _remise(racine: Node3D) -> void:
 	Lot.boite_c(Vector3(3.0, 0.01, 5.6), Vector3(-222.0, 0.125, -21.5), Color(0.82, 0.82, 0.8))
 	var marquage := Geo.texte(racine, "VL CDG", Vector3(-222.0, 0.13, -24.8), 40, JAUNE, false)
 	marquage.rotation.x = -PI * 0.5
+	_materiel_vl(racine)
+
+
+## Matériel rangé autour du VL : armoire des lots, étagère de sacs, émulseur sur palette,
+## dévidoir mobile, motopompe remorquable et réserve de balisage.
+static func _materiel_vl(racine: Node3D) -> void:
+	var gris := Color(0.42, 0.46, 0.5)
+	var axe_x := Basis(Vector3.BACK, PI * 0.5)
+	# Armoire métallique à deux portes contre le mur de droite
+	_meuble(racine, Vector3(0.6, 2.0, 1.2), Vector3(-215.35, 1.0, -16.4), gris, true)
+	Lot.boite_c(Vector3(0.01, 1.9, 0.02), Vector3(-215.66, 1.0, -16.4), Color(0.2, 0.2, 0.22))
+	for dz in [-0.08, 0.08]:
+		Lot.boite_c(Vector3(0.03, 0.2, 0.03), Vector3(-215.68, 1.1, -16.4 + dz), METAL)
+	_ecriteau(racine, "LOTS", Vector3(-215.66, 1.75, -16.4), -PI * 0.5, ROUGE)
+	# Étagère de sacs : lots de sauvetage, sacs d'oxygénothérapie, kits de balisage
+	_etagere(racine, Vector3(-215.4, 0, -19.6), PI * 0.5, 3.0, 0.5, 2.0, 4)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 33
+	for k in 4:
+		var y := 0.15 + k * 0.6 + 0.02
+		var z := -20.9
+		while z < -18.4:
+			var l := rng.randf_range(0.4, 0.65)
+			var h := rng.randf_range(0.22, 0.4)
+			var c: Color = [Color(0.8, 0.1, 0.08), Color(0.85, 0.35, 0.05), Color(0.15, 0.3, 0.6), Color(0.2, 0.2, 0.22), Color(0.9, 0.85, 0.2)][rng.randi() % 5]
+			Lot.boite_c(Vector3(0.42, h, l), Vector3(-215.4, y + h * 0.5, z + l * 0.5), c)
+			Lot.boite_c(Vector3(0.43, 0.03, l * 0.6), Vector3(-215.4, y + h + 0.015, z + l * 0.5), Color(0.1, 0.1, 0.1))
+			z += l + 0.08
+	# Bidons d'émulseur sur palette
+	Lot.boite_c(Vector3(0.8, 0.14, 1.2), Vector3(-215.7, 0.07, -22.6), BOIS)
+	for i in 2:
+		for j in 3:
+			for k in 2:
+				var p := Vector3(-215.9 + i * 0.4, 0.34 + k * 0.42, -23.0 + j * 0.4)
+				Lot.boite_c(Vector3(0.34, 0.4, 0.3), p, Color(0.95, 0.85, 0.15))
+				Lot.cylindre(0.04, 0.06, p + Vector3(0.08, 0.22, 0), Geo.mat(Color(0.1, 0.1, 0.1)))
+	_collision(racine, Vector3(0.8, 1.0, 1.2), Vector3(-215.7, 0.5, -22.6))
+	# Dévidoir mobile (tambour de tuyau sur deux grandes roues)
+	var dv := Vector3(-216.3, 0, -26.6)
+	for sx in [-0.42, 0.42]:
+		Lot.cylindre(0.45, 0.08, dv + Vector3(sx, 0.45, 0), Geo.mat(Color(0.08, 0.08, 0.08)), axe_x)
+		Lot.boite_c(Vector3(0.05, 1.0, 0.05), dv + Vector3(sx * 0.85, 0.75, 0), ROUGE)
+	Lot.cylindre(0.38, 0.6, dv + Vector3(0, 0.6, 0), Geo.mat(Color(0.92, 0.9, 0.84)), axe_x)
+	Lot.cylindre(0.4, 0.04, dv + Vector3(-0.31, 0.6, 0), Geo.mat(ROUGE), axe_x)
+	Lot.cylindre(0.4, 0.04, dv + Vector3(0.31, 0.6, 0), Geo.mat(ROUGE), axe_x)
+	Lot.boite_c(Vector3(0.05, 0.05, 1.0), dv + Vector3(-0.36, 0.9, -0.45), ROUGE, Basis(Vector3.RIGHT, 0.6))
+	Lot.boite_c(Vector3(0.05, 0.05, 1.0), dv + Vector3(0.36, 0.9, -0.45), ROUGE, Basis(Vector3.RIGHT, 0.6))
+	Lot.cylindre(0.03, 0.8, dv + Vector3(0, 1.2, -0.85), Geo.mat(Color(0.1, 0.1, 0.1)), axe_x)
+	_collision(racine, Vector3(1.0, 1.2, 1.0), dv + Vector3(0, 0.6, 0))
+	# Motopompe remorquable entre le VL et le FPT, timon vers la porte
+	var mp := Vector3(-229.6, 0, -19.5)
+	_meuble(racine, Vector3(1.1, 0.55, 1.7), mp + Vector3(0, 0.75, 0), ROUGE, true)
+	Lot.boite_c(Vector3(0.95, 0.5, 1.0), mp + Vector3(0, 1.27, -0.2), Color(0.25, 0.27, 0.3))
+	Lot.cylindre(0.2, 0.35, mp + Vector3(0, 1.15, 0.55), Geo.mat(Color(0.6, 0.62, 0.64)), axe_x)
+	for sx in [-0.5, 0.5]:
+		Lot.cylindre(0.11, 0.15, mp + Vector3(sx * 1.05, 1.15, 0.55), Geo.mat(Color(0.75, 0.6, 0.25)), axe_x)
+	for sx in [-0.68, 0.68]:
+		Lot.cylindre(0.3, 0.18, mp + Vector3(sx, 0.3, 0), Geo.mat(Color(0.08, 0.08, 0.08)), axe_x)
+		Lot.cylindre(0.15, 0.19, mp + Vector3(sx, 0.3, 0), Geo.mat(METAL), axe_x)
+		Lot.boite_c(Vector3(0.22, 0.05, 0.75), mp + Vector3(sx, 0.63, 0), ROUGE.darkened(0.3))
+	Lot.boite_c(Vector3(0.08, 0.08, 1.3), mp + Vector3(0, 0.55, 1.45), Color(0.2, 0.2, 0.22))
+	Lot.cylindre(0.08, 0.4, mp + Vector3(0, 0.35, 1.95), Geo.mat(METAL))
+	Lot.cylindre(0.08, 0.05, mp + Vector3(0, 0.08, 1.95), Geo.mat(Color(0.1, 0.1, 0.1)), axe_x)
+	# Tuyaux d'aspiration noirs rangés sur le côté
+	for i in 2:
+		Lot.cylindre(0.07, 1.6, mp + Vector3(-0.62 + i * 0.16, 1.1, -0.1), Geo.mat(Color(0.06, 0.06, 0.06)), Basis(Vector3.RIGHT, PI * 0.5))
+	Lot.boite_c(Vector3(2.0, 0.01, 3.4), mp + Vector3(0, 0.125, 0.4), Color(0.82, 0.82, 0.8))
+	var t := Geo.texte(racine, "MPR", mp + Vector3(0, 0.13, -1.0), 40, JAUNE, false)
+	t.rotation.x = -PI * 0.5
+	# Réserve de balisage : cônes empilés, panneaux triangulaires, barrières
+	var rb := Vector3(-229.6, 0, -28.5)
+	Lot.boite_c(Vector3(1.2, 0.14, 0.8), rb + Vector3(0, 0.07, 0), BOIS)
+	for i in 3:
+		for j in 2:
+			for k in 5:
+				Lot.cone(0.16, 0.5, rb + Vector3(-0.4 + i * 0.4, 0.4 + k * 0.1, -0.2 + j * 0.4), Geo.mat(Color(0.95, 0.4, 0.05)))
+	for i in 3:
+		var bt := Basis(Vector3.RIGHT, -0.15)
+		Lot.boite_c(Vector3(0.8, 0.7, 0.03), rb + Vector3(0, 0.45, -0.7 - i * 0.06), Color(0.95, 0.95, 0.95), bt)
+		Lot.boite_c(Vector3(0.6, 0.5, 0.032), rb + Vector3(0, 0.45, -0.7 - i * 0.06), ROUGE, bt)
+	for i in 3:
+		Lot.boite_c(Vector3(2.0, 0.12, 0.04), rb + Vector3(0, 0.95 - i * 0.04, 0.8 + i * 0.12), Color(0.95, 0.95, 0.95), Basis(Vector3.RIGHT, -0.05))
+		for sx in [-0.95, 0.95]:
+			Lot.boite_c(Vector3(0.05, 1.0, 0.05), rb + Vector3(sx, 0.5, 0.8 + i * 0.12), Color(0.85, 0.2, 0.1))
+	_collision(racine, Vector3(2.2, 1.0, 2.2), rb + Vector3(0, 0.5, 0.2))
+	_panneau(racine, "CONSIGNES VL CDG", Vector3(-215.0, 1.6, -28.2), -PI * 0.5, 1.4, 0.9)
 
 
 static func _salle_de_sport(racine: Node3D) -> void:
@@ -567,7 +668,9 @@ static func _parking_personnel(racine: Node3D) -> void:
 		var pos := Vector3(-211.6, 0, z + 1.35)
 		var c: Color = couleurs[n % couleurs.size()]
 		var ang := PI * 0.5 if n % 2 == 0 else -PI * 0.5
-		if n % 5 != 1 or Modeles.voiture(racine, "octavia", pos, ang, c) == null:
+		# Voitures des modèles fournis, en alternance ; voiture dessinée en code si les fichiers manquent
+		var type := "octavia" if n % 3 != 2 else "kodiaq"
+		if Modeles.voiture(racine, type, pos, ang, c) == null and Modeles.voiture(racine, "octavia", pos, ang, c) == null:
 			VoitureModele.garer(Lot, VoitureModele.TYPES[(n * 3) % VoitureModele.TYPES.size()], c, pos, Basis(Vector3.UP, ang))
 		var corps := StaticBody3D.new()
 		corps.position = pos + Vector3(0, 0.75, 0)

@@ -92,6 +92,9 @@ static func construire(racine: Node3D) -> void:
 	_voitures_garees(racine, rng)
 	Quartiers.construire(racine)
 	_caserne(racine)
+	var rng_place := RandomNumberGenerator.new()
+	rng_place.seed = 5
+	Details.placette(racine, rng_place)
 	_maison(racine)
 	_immeuble(racine)
 	_hopital(racine)

@@ -31,6 +31,8 @@ const VOITURES := {
 	"kodiaq": {"f": "skoda_kodiaq_2024.glb", "peinture": "e_Carpaint", "mats": ["lICENSE", "e_chrome_Unique_Dark", "Texts_Texture", "text_ui"], "noeuds": []},
 	"octavia": {"f": "skoda_octavia_combi_2024.glb", "peinture": "e_Carpaint", "mats": ["Material.006", "E_Chrome.011", "Texts_Texture", "text_ui"], "noeuds": ["Object_47"]},
 }
+## Fichiers qui reçoivent des niveaux de détail au chargement.
+const LOD := ["skoda_kodiaq_2024.glb", "skoda_octavia_combi_2024.glb"]
 const ANGLE := {"f": "bordeaux_flat_2_corner_france.glb", "x0": -11.5, "x1": 15.3, "zf": 7.3, "zb": -3.9, "h": 18.6, "angle": true}
 
 static var _cache := {}
@@ -50,6 +52,12 @@ static func _original(nom: String) -> Node3D:
 		var doc := GLTFDocument.new()
 		var etat := GLTFState.new()
 		if doc.append_from_file(DOSSIER + nom, etat) == OK:
+			if nom in LOD:
+				# Niveaux de détail : les modèles très fins (voitures) se simplifient au loin
+				for gm in etat.get_meshes():
+					var im: ImporterMesh = (gm as GLTFMesh).mesh
+					if im != null:
+						im.generate_lods(25.0, 60.0, [])
 			n = doc.generate_scene(etat)
 		else:
 			push_warning("Modèle illisible : " + nom)

@@ -558,3 +558,118 @@ static func arbre(pos: Vector3, taille: float, rng: RandomNumberGenerator, plata
 		var p := cime + Vector3(cos(ang) * d, rng.randf_range(-0.35, 0.45) * R, sin(ang) * d)
 		Lot.sphere(R * rng.randf_range(0.5, 0.7), p, feuille if k % 2 == 0 else feuille2, rng.randf_range(0.7, 0.9))
 	Lot.sphere(R * 0.55, cime + Vector3(rng.randf_range(-0.3, 0.3) * R, R * 0.55, rng.randf_range(-0.3, 0.3) * R), feuille2, 0.8)
+
+
+# ---------------------------------------------------------------------------
+# Place piétonne à côté du centre de secours
+# ---------------------------------------------------------------------------
+
+## Place dallée entre la caserne et la rocade : fontaine, deux alignements d'arbres,
+## pelouses fleuries, bancs tournés vers la fontaine, monument aux morts au fond.
+static func placette(racine: Node3D, rng: RandomNumberGenerator) -> void:
+	var r := Rect2(-327.0, -100.0, 33.0, 62.0)
+	var c2 := r.get_center()
+	var ce := Vector3(c2.x, 0, c2.y)
+	var pierre_claire := Color(0.86, 0.82, 0.72)
+	# Dallage clair et bordure de granit
+	Geo.boite_mat(racine, Vector3(r.size.x, 0.04, r.size.y), Vector3(ce.x, 0.06, ce.z), Tex.mat_beton(Color(1.0, 0.95, 0.85)), false)
+	for cote in [-1.0, 1.0]:
+		Lot.boite_c(Vector3(r.size.x, 0.12, 0.3), ce + Vector3(0, 0.08, cote * r.size.y * 0.5), Color(0.5, 0.5, 0.52))
+		Lot.boite_c(Vector3(0.3, 0.12, r.size.y), ce + Vector3(cote * r.size.x * 0.5, 0.08, 0), Color(0.5, 0.5, 0.52))
+	# Bandes de pavés sombres en croix
+	Lot.boite_c(Vector3(r.size.x - 1.0, 0.01, 1.2), ce + Vector3(0, 0.085, 0), Color(0.45, 0.43, 0.4))
+	Lot.boite_c(Vector3(1.2, 0.01, r.size.y - 1.0), ce + Vector3(0, 0.085, 0), Color(0.45, 0.43, 0.4))
+	# Fontaine : bassin rond, eau, colonne et vasque
+	var pf := ce + Vector3(0, 0, 4.0)
+	Lot.cylindre(4.6, 0.12, pf + Vector3(0, 0.1, 0), Lot.couleur(Color(0.45, 0.43, 0.4)))
+	Lot.cylindre(4.0, 0.5, pf + Vector3(0, 0.31, 0), Lot.couleur(pierre_claire))
+	# Eau du bassin, juste au-dessus de la margelle intérieure
+	Lot.cylindre(3.7, 0.04, pf + Vector3(0, 0.575, 0), Lot.couleur(Color(0.18, 0.36, 0.45), 0.08))
+	Lot.cylindre(0.45, 1.8, pf + Vector3(0, 1.3, 0), Lot.couleur(pierre_claire))
+	Lot.cylindre(1.4, 0.25, pf + Vector3(0, 2.2, 0), Lot.couleur(pierre_claire))
+	Lot.cylindre(1.25, 0.04, pf + Vector3(0, 2.33, 0), Lot.couleur(Color(0.2, 0.4, 0.5), 0.08))
+	Lot.sphere(0.35, pf + Vector3(0, 2.6, 0), Lot.couleur(pierre_claire))
+	# Jet d'eau au sommet
+	Lot.cone(0.12, 0.9, pf + Vector3(0, 3.2, 0), Lot.couleur(Color(0.8, 0.9, 1.0), 0.4))
+	var corps := StaticBody3D.new()
+	corps.position = pf + Vector3(0, 0.5, 0)
+	racine.add_child(corps)
+	var cs := CollisionShape3D.new()
+	var cyl := CylinderShape3D.new()
+	cyl.radius = 4.0
+	cyl.height = 1.0
+	cs.shape = cyl
+	corps.add_child(cs)
+	# Bancs tournés vers la fontaine
+	for i in 6:
+		var a := i * TAU / 6.0 + TAU / 12.0
+		var p := pf + Vector3(cos(a) * 7.0, 0.08, sin(a) * 7.0)
+		var vers := (pf - p).normalized()
+		var ang := atan2(vers.x, vers.z)
+		var mod: String = Modeles.MOBILIER["banc_bois"] if i % 2 == 0 else Modeles.MOBILIER["banc_metal"]
+		if Modeles.poser(racine, Modeles.RUE, p, ang + Modeles.BANC_ROT, 1.0, mod, false) == null:
+			_banc(p, ang)
+	# Pelouses fleuries aux quatre coins de la fontaine
+	var fleurs: Array = [Color(0.85, 0.15, 0.2), Color(0.95, 0.8, 0.1), Color(0.95, 0.95, 0.95), Color(0.6, 0.3, 0.75)]
+	for q in [Vector3(-9.0, 0, -9.0), Vector3(9.0, 0, -9.0), Vector3(-9.0, 0, 15.0), Vector3(9.0, 0, 15.0)]:
+		var pq: Vector3 = ce + q
+		Lot.boite_c(Vector3(9.0, 0.25, 9.0), pq + Vector3(0, 0.12, 0), Color(0.6, 0.58, 0.54))
+		Geo.boite_mat(racine, Vector3(8.6, 0.06, 8.6), pq + Vector3(0, 0.24, 0), Tex.mat_herbe(), false)
+		# Bordure de fleurs : petites touffes serrées, une couleur par côté
+		for cote in 4:
+			var bc := Basis(Vector3.UP, cote * PI * 0.5)
+			var coul: Color = fleurs[(cote + int(absf(q.z))) % 4]
+			for k in 18:
+				var pk := pq + bc * Vector3(-3.6 + k * 0.42, 0, 3.7) + Vector3(0, 0.3, 0)
+				Lot.sphere(0.16, pk, Lot.couleur(Color(0.25, 0.45, 0.2)), 0.7)
+				Lot.sphere(0.1, pk + Vector3(0, 0.1, 0), Lot.couleur(coul), 0.6)
+		if Modeles.poser(racine, Modeles.PLANTES, pq + Vector3(0, 0.27, 0), rng.randf() * TAU, 0.45, "Plants*#%d" % (9 + rng.randi() % 6), false) == null:
+			Lot.sphere(1.0, pq + Vector3(0, 0.7, 0), Tex.mat_feuillage(FEUILLAGES[0]), 0.7)
+	# Deux alignements d'arbres avec grilles au pied, lampadaires entre les arbres
+	var z := r.position.y + 5.0
+	var n := 0
+	while z < r.end.y - 3.0:
+		for x in [r.position.x + 2.5, r.end.x - 2.5]:
+			var pa := Vector3(x, 0.08, z)
+			Lot.boite_c(Vector3(1.4, 0.02, 1.4), pa, Color(0.15, 0.15, 0.16))
+			var nom: String = "Tree 1" if n % 2 == 0 else "Tree 2"
+			if Modeles.poser(racine, Modeles.ARBRE, pa, rng.randf() * TAU, rng.randf_range(1.1, 1.3), nom, false) == null:
+				arbre(pa, rng.randf_range(0.9, 1.1), rng)
+			if n % 2 == 1:
+				lampadaire(Vector3(x, 0.08, z - 4.0), PI * 0.5 if x < ce.x else -PI * 0.5)
+			n += 1
+		z += 8.0
+	# Poubelles et jardinières aux entrées
+	for p in [ce + Vector3(-3.0, 0.08, r.size.y * 0.5 - 1.5), ce + Vector3(3.0, 0.08, r.size.y * 0.5 - 1.5), ce + Vector3(-5.0, 0.08, -r.size.y * 0.5 + 12.0)]:
+		Modeles.poser(racine, Modeles.RUE, p, 0.0, 1.0, Modeles.MOBILIER["poubelle"], false)
+	for p in [ce + Vector3(-6.0, 0.08, r.size.y * 0.5 - 1.5), ce + Vector3(6.0, 0.08, r.size.y * 0.5 - 1.5)]:
+		if Modeles.poser(racine, Modeles.RUE, p, 0.0, 1.0, Modeles.MOBILIER["jardiniere"], false) == null:
+			Lot.boite_c(Vector3(1.6, 0.6, 0.7), p + Vector3(0, 0.3, 0), Color(0.5, 0.5, 0.52))
+	# Monument aux morts au fond de la place
+	var pm := ce + Vector3(0, 0.08, -r.size.y * 0.5 + 5.0)
+	for k in 3:
+		Lot.boite_c(Vector3(5.0 - k * 1.0, 0.25, 4.0 - k * 1.0), pm + Vector3(0, 0.125 + k * 0.25, 0), Color(0.6, 0.6, 0.6))
+	Lot.boite_c(Vector3(1.6, 3.2, 1.2), pm + Vector3(0, 2.35, 0), pierre_claire)
+	Lot.boite_c(Vector3(1.0, 2.0, 0.8), pm + Vector3(0, 4.95, 0), pierre_claire)
+	Lot.boite_c(Vector3(0.9, 0.5, 0.7), pm + Vector3(0, 6.2, 0), pierre_claire, Basis(Vector3.UP, PI * 0.25))
+	Lot.sphere(0.35, pm + Vector3(0, 6.7, 0), Lot.couleur(Color(0.35, 0.45, 0.38)))
+	var ins := Geo.texte(racine, "À NOS MORTS\n1914 - 1918\n1939 - 1945", pm + Vector3(0, 2.6, 0.61), 26, Color(0.25, 0.25, 0.25), false)
+	ins.outline_size = 0
+	ins.pixel_size = 0.006
+	for sx in [-2.8, 2.8]:
+		Lot.cylindre(0.08, 0.9, pm + Vector3(sx, 0.45, 2.6), Lot.couleur(Color(0.1, 0.1, 0.1)))
+		Lot.sphere(0.1, pm + Vector3(sx, 0.92, 2.6), Lot.couleur(Color(0.1, 0.1, 0.1)))
+	Lot.boite_c(Vector3(5.6, 0.04, 0.04), pm + Vector3(0, 0.75, 2.6), Color(0.1, 0.1, 0.1))
+	var corps2 := StaticBody3D.new()
+	corps2.position = pm + Vector3(0, 1.5, 0)
+	racine.add_child(corps2)
+	var cs2 := CollisionShape3D.new()
+	var bx := BoxShape3D.new()
+	bx.size = Vector3(5.0, 3.0, 4.0)
+	cs2.shape = bx
+	corps2.add_child(cs2)
+	# Nom de la place
+	var t := Geo.texte(racine, "Place des Tilleuls", ce + Vector3(0, 2.6, r.size.y * 0.5 + 0.2), 40, Color(0.95, 0.95, 0.9), false)
+	t.outline_size = 6
+	Lot.boite_c(Vector3(0.08, 2.4, 0.08), ce + Vector3(-1.6, 1.2, r.size.y * 0.5 + 0.2), FER)
+	Lot.boite_c(Vector3(0.08, 2.4, 0.08), ce + Vector3(1.6, 1.2, r.size.y * 0.5 + 0.2), FER)
