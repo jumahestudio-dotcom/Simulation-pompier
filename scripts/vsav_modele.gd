@@ -9,13 +9,24 @@ const Geo = preload("res://scripts/geo.gd")
 const Tex = preload("res://scripts/textures.gd")
 const VM = preload("res://scripts/voiture_modele.gd")
 
-const L := 5.9          # longueur
-const W := 2.1          # largeur
-const H := 2.78         # hauteur du toit
-const SOL := 0.72       # plancher de la cellule
-const Z_AV := -2.95     # nez
-const Z_AR := 2.95      # arrière
-const Z_CLOISON := -0.95  # cloison entre cabine et cellule
+const Crafter = preload("res://scripts/crafter.gd")
+
+# Cotes du VSAV dessiné en code. Si le modèle de fourgon (modeles/crafter.glb) est présent,
+# elles sont remplacées par celles du fourgon dans construire().
+const L0 := 5.9
+const W0 := 2.1
+const H0 := 2.78
+const SOL0 := 0.72
+const Z_AR0 := 2.95
+const Z_CLOISON0 := -0.95
+static var L := L0          # longueur
+static var W := W0          # largeur
+static var H := H0          # hauteur du toit
+static var SOL := SOL0      # plancher de la cellule
+static var Z_AV := -2.95    # nez
+static var Z_AR := Z_AR0    # arrière
+static var Z_CLOISON := Z_CLOISON0  # cloison entre cabine et cellule
+static var fourgon := false  # vrai quand le modèle de fourgon est utilisé
 
 static var _m: Dictionary = {}
 
@@ -148,6 +159,19 @@ static func _texte(parent: Node, t: String, pos: Vector3, rot_y: float, taille: 
 ## Construit le VSAV dans l'engin "e" et renvoie la description des portes.
 static func construire(e: Node3D) -> Dictionary:
 	_mats()
+	var f := Crafter.instancier(e, _m["rouge"])
+	if not f.is_empty():
+		fourgon = true
+		L = 7.59
+		W = 2.04
+		H = 2.54
+		SOL = 0.46
+		Z_AV = -3.4
+		Z_AR = 3.8
+		Z_CLOISON = -0.7
+		_habillage_fourgon(e)
+		_cellule(e)
+		return _portes_fourgon(e, f)
 	_carrosserie_galbee(e)
 	_chassis(e)
 	_cabine(e)
@@ -412,27 +436,42 @@ static func _inscriptions(e: Node3D) -> void:
 
 
 static func _cellule(e: Node3D) -> void:
-	var f := SOL
+	# Le mobilier est placé dans les cotes du VSAV dessiné ; dans le fourgon, il est recalé
+	# contre la cloison (groupe avant) et contre les portes arrière (groupe arrière).
+	var sx := 0.9 if fourgon else 1.0
+	var dy := SOL - SOL0
+	var av := Node3D.new()
+	av.position = Vector3(0, dy, Z_CLOISON - Z_CLOISON0)
+	av.scale = Vector3(sx, 1, 1)
+	e.add_child(av)
+	var ar := Node3D.new()
+	ar.position = Vector3(0, dy, Z_AR - 0.15 * float(fourgon) - Z_AR0)
+	ar.scale = Vector3(sx, 1, 1)
+	e.add_child(ar)
+	var H := H0
+	var Z_AR := Z_AR0
+	var Z_CLOISON := Z_CLOISON0
+	var f := SOL0
 	# Éclairage de plafond
 	for z in [0.0, 1.6]:
-		_b(e, Vector3(0.6, 0.03, 0.5), Vector3(0, H - 0.09, z), "phare")
+		_b(ar, Vector3(0.6, 0.03, 0.5), Vector3(0, H - 0.09, z), "phare")
 	var lum := OmniLight3D.new()
 	lum.position = Vector3(0, H - 0.3, 1.0)
 	lum.omni_range = 3.5
 	lum.light_energy = 0.7
 	lum.light_color = Color(1.0, 0.97, 0.92)
-	e.add_child(lum)
+	ar.add_child(lum)
 	# --- Brancard rouge sur support inox (côté gauche, tête vers l'avant)
 	var bx := -0.38
-	_b(e, Vector3(0.68, 0.32, 2.05), Vector3(bx, f + 0.16, 1.45), "inox")
-	_b(e, Vector3(0.7, 0.02, 2.05), Vector3(bx, f + 0.33, 1.45), "gris")
-	_b(e, Vector3(0.3, 0.12, 0.05), Vector3(bx, f + 0.2, 2.48), "matelas")
+	_b(ar, Vector3(0.68, 0.32, 2.05), Vector3(bx, f + 0.16, 1.45), "inox")
+	_b(ar, Vector3(0.7, 0.02, 2.05), Vector3(bx, f + 0.33, 1.45), "gris")
+	_b(ar, Vector3(0.3, 0.12, 0.05), Vector3(bx, f + 0.2, 2.48), "matelas")
 	for zz in [0.6, 2.3]:
 		for xx in [-0.25, 0.25]:
-			_b(e, Vector3(0.04, 0.4, 0.04), Vector3(bx + xx, f + 0.52, zz), "inox")
-	_b(e, Vector3(0.6, 0.06, 1.9), Vector3(bx, f + 0.72, 1.5), "inox")
-	_b(e, Vector3(0.56, 0.12, 1.25), Vector3(bx, f + 0.8, 1.85), "matelas")
-	var dossier := _b(e, Vector3(0.56, 0.12, 0.7), Vector3(bx, f + 0.98, 0.92), "matelas")
+			_b(ar, Vector3(0.04, 0.4, 0.04), Vector3(bx + xx, f + 0.52, zz), "inox")
+	_b(ar, Vector3(0.6, 0.06, 1.9), Vector3(bx, f + 0.72, 1.5), "inox")
+	_b(ar, Vector3(0.56, 0.12, 1.25), Vector3(bx, f + 0.8, 1.85), "matelas")
+	var dossier := _b(ar, Vector3(0.56, 0.12, 0.7), Vector3(bx, f + 0.98, 0.92), "matelas")
 	dossier.rotation.x = 0.55
 	# Cadre blanc relevé à la tête (comme sur la photo) et barrières latérales
 	var cadre := Node3D.new()
@@ -443,14 +482,15 @@ static func _cellule(e: Node3D) -> void:
 		_b(cadre, Vector3(0.04, 0.75, 0.04), Vector3(xx, 0.37, 0), "blanc")
 	_b(cadre, Vector3(0.64, 0.05, 0.25), Vector3(0, 0.76, 0.05), "blanc")
 	for xx in [-0.31, 0.31]:
-		_b(e, Vector3(0.03, 0.03, 1.2), Vector3(bx + xx, f + 0.95, 1.85), "inox")
+		_b(ar, Vector3(0.03, 0.03, 1.2), Vector3(bx + xx, f + 0.95, 1.85), "inox")
 	# Sangles noires
 	for zz in [1.35, 1.9, 2.3]:
-		_b(e, Vector3(0.58, 0.02, 0.06), Vector3(bx, f + 0.865, zz), "noir")
+		_b(ar, Vector3(0.58, 0.02, 0.06), Vector3(bx, f + 0.865, zz), "noir")
 	# Victime allongée, cachée tant qu'elle n'est pas chargée
 	var pat := Node3D.new()
 	pat.name = "PatientABord"
 	pat.visible = false
+	pat.transform = ar.transform
 	e.add_child(pat)
 	_b(pat, Vector3(0.4, 0.22, 0.7), Vector3(bx, f + 1.0, 1.35), "siege2")
 	_b(pat, Vector3(0.36, 0.18, 0.85), Vector3(bx, f + 0.95, 2.05), "sac")
@@ -464,63 +504,160 @@ static func _cellule(e: Node3D) -> void:
 	tete.position = Vector3(bx, f + 1.2, 0.95)
 	pat.add_child(tete)
 	# --- Banquette à droite avec deux sièges gris, face au brancard
-	_b(e, Vector3(0.45, 0.42, 1.7), Vector3(0.8, f + 0.21, 1.9), "int")
-	_b(e, Vector3(0.02, 0.38, 1.66), Vector3(0.565, f + 0.2, 1.9), "inox")
+	_b(ar, Vector3(0.45, 0.42, 1.7), Vector3(0.8, f + 0.21, 1.9), "int")
+	_b(ar, Vector3(0.02, 0.38, 1.66), Vector3(0.565, f + 0.2, 1.9), "inox")
 	for zz in [1.45, 2.3]:
-		_b(e, Vector3(0.42, 0.1, 0.46), Vector3(0.75, f + 0.62, zz), "siege")
-		_b(e, Vector3(0.1, 0.8, 0.46), Vector3(0.95, f + 1.1, zz), "siege")
-		_b(e, Vector3(0.09, 0.22, 0.3), Vector3(0.95, f + 1.62, zz), "siege")
+		_b(ar, Vector3(0.42, 0.1, 0.46), Vector3(0.75, f + 0.62, zz), "siege")
+		_b(ar, Vector3(0.1, 0.8, 0.46), Vector3(0.95, f + 1.1, zz), "siege")
+		_b(ar, Vector3(0.09, 0.22, 0.3), Vector3(0.95, f + 1.62, zz), "siege")
 		for dz in [-0.24, 0.24]:
-			_b(e, Vector3(0.3, 0.05, 0.05), Vector3(0.78, f + 0.85, zz + dz), "siege2")
-		_b(e, Vector3(0.06, 0.06, 0.06), Vector3(0.62, f + 0.47, zz + 0.2), "matelas")
+			_b(ar, Vector3(0.3, 0.05, 0.05), Vector3(0.78, f + 0.85, zz + dz), "siege2")
+		_b(ar, Vector3(0.06, 0.06, 0.06), Vector3(0.62, f + 0.47, zz + 0.2), "matelas")
 	# --- Main courante bleue : verticale à la porte arrière, horizontale au plafond
-	_cyl(e, 0.022, 1.6, Vector3(0.9, f + 1.05, Z_AR - 0.12), "bleu")
+	_cyl(ar, 0.022, 1.6, Vector3(0.9, f + 1.05, Z_AR - 0.12), "bleu")
 	for yy in [f + 0.3, f + 1.8]:
-		_b(e, Vector3(0.1, 0.03, 0.03), Vector3(0.95, yy, Z_AR - 0.12), "bleu")
-	_cyl(e, 0.02, 3.4, Vector3(0.25, H - 0.2, 1.0), "bleu", Vector3(PI * 0.5, 0, 0))
+		_b(ar, Vector3(0.1, 0.03, 0.03), Vector3(0.95, yy, Z_AR - 0.12), "bleu")
+	_cyl(ar, 0.02, 3.4, Vector3(0.25, H - 0.2, 1.0), "bleu", Vector3(PI * 0.5, 0, 0))
 	# --- Cloison avant : armoire, tiroirs à serrures rondes, plan de travail, DSA
 	var zc := Z_CLOISON + 0.25
-	_b(e, Vector3(0.45, 1.75, 0.4), Vector3(-0.73, f + 0.875, zc - 0.03), "int")
+	_b(av, Vector3(0.45, 1.75, 0.4), Vector3(-0.73, f + 0.875, zc - 0.03), "int")
 	for yy in [0.45, 1.05, 1.5]:
-		_b(e, Vector3(0.41, 0.01, 0.01), Vector3(-0.73, f + yy, zc + 0.175), "siege2")
-		_cyl(e, 0.03, 0.02, Vector3(-0.73, f + yy + 0.2, zc + 0.18), "inox", Vector3(PI * 0.5, 0, 0))
-	_b(e, Vector3(0.7, 0.95, 0.4), Vector3(-0.08, f + 0.48, zc - 0.03), "int")
+		_b(av, Vector3(0.41, 0.01, 0.01), Vector3(-0.73, f + yy, zc + 0.175), "siege2")
+		_cyl(av, 0.03, 0.02, Vector3(-0.73, f + yy + 0.2, zc + 0.18), "inox", Vector3(PI * 0.5, 0, 0))
+	_b(av, Vector3(0.7, 0.95, 0.4), Vector3(-0.08, f + 0.48, zc - 0.03), "int")
 	for k in 4:
-		_b(e, Vector3(0.32, 0.01, 0.01), Vector3(-0.08, f + 0.22 + k * 0.23, zc + 0.175), "siege2")
-		_cyl(e, 0.025, 0.02, Vector3(-0.08, f + 0.33 + k * 0.23, zc + 0.18), "inox", Vector3(PI * 0.5, 0, 0))
-	_b(e, Vector3(1.5, 0.04, 0.5), Vector3(0.1, f + 1.02, zc), "int")
-	_b(e, Vector3(1.5, 0.04, 0.35), Vector3(0.1, f + 1.65, zc - 0.07), "int")
+		_b(av, Vector3(0.32, 0.01, 0.01), Vector3(-0.08, f + 0.22 + k * 0.23, zc + 0.175), "siege2")
+		_cyl(av, 0.025, 0.02, Vector3(-0.08, f + 0.33 + k * 0.23, zc + 0.18), "inox", Vector3(PI * 0.5, 0, 0))
+	_b(av, Vector3(1.5, 0.04, 0.5), Vector3(0.1, f + 1.02, zc), "int")
+	_b(av, Vector3(1.5, 0.04, 0.35), Vector3(0.1, f + 1.65, zc - 0.07), "int")
 	# Défibrillateur (DSA) : boîtier bleu, poignée jaune
-	_b(e, Vector3(0.32, 0.38, 0.1), Vector3(0.55, f + 1.42, Z_CLOISON + 0.09), "bleu")
-	_b(e, Vector3(0.12, 0.08, 0.04), Vector3(0.55, f + 1.64, Z_CLOISON + 0.11), "fluo")
-	_texte(e, "DSA", Vector3(0.55, f + 1.38, Z_CLOISON + 0.145), 0.0, 40, 0.003, Color(1, 1, 1))
+	_b(av, Vector3(0.32, 0.38, 0.1), Vector3(0.55, f + 1.42, Z_CLOISON + 0.09), "bleu")
+	_b(av, Vector3(0.12, 0.08, 0.04), Vector3(0.55, f + 1.64, Z_CLOISON + 0.11), "fluo")
+	_texte(av, "DSA", Vector3(0.55, f + 1.38, Z_CLOISON + 0.145), 0.0, 40, 0.003, Color(1, 1, 1))
 	# Moniteur au-dessus du plan de travail
-	_b(e, Vector3(0.45, 0.3, 0.05), Vector3(-0.1, f + 1.25, Z_CLOISON + 0.12), "noir")
-	_b(e, Vector3(0.4, 0.24, 0.01), Vector3(-0.1, f + 1.25, Z_CLOISON + 0.15), "vitre")
+	_b(av, Vector3(0.45, 0.3, 0.05), Vector3(-0.1, f + 1.25, Z_CLOISON + 0.12), "noir")
+	_b(av, Vector3(0.4, 0.24, 0.01), Vector3(-0.1, f + 1.25, Z_CLOISON + 0.15), "vitre")
 	# Sac d'intervention bleu à bandes jaunes, au sol contre les tiroirs
-	_b(e, Vector3(0.5, 0.48, 0.32), Vector3(0.55, f + 0.24, zc + 0.05), "sac")
+	_b(av, Vector3(0.5, 0.48, 0.32), Vector3(0.55, f + 0.24, zc + 0.05), "sac")
 	for yy in [0.12, 0.4]:
-		_b(e, Vector3(0.51, 0.05, 0.33), Vector3(0.55, f + yy, zc + 0.05), "fluo")
-	_b(e, Vector3(0.3, 0.06, 0.06), Vector3(0.55, f + 0.52, zc + 0.05), "noir")
+		_b(av, Vector3(0.51, 0.05, 0.33), Vector3(0.55, f + yy, zc + 0.05), "fluo")
+	_b(av, Vector3(0.3, 0.06, 0.06), Vector3(0.55, f + 0.52, zc + 0.05), "noir")
 	# Matelas immobilisateur roulé (rouge) et attelles
-	_b(e, Vector3(0.18, 0.75, 0.25), Vector3(0.9, f + 0.42, Z_CLOISON + 0.2), "matelas")
+	_b(av, Vector3(0.18, 0.75, 0.25), Vector3(0.9, f + 0.42, Z_CLOISON + 0.2), "matelas")
 	for yy in [0.2, 0.6]:
-		_b(e, Vector3(0.19, 0.04, 0.26), Vector3(0.9, f + yy, Z_CLOISON + 0.2), "fluo")
+		_b(av, Vector3(0.19, 0.04, 0.26), Vector3(0.9, f + yy, Z_CLOISON + 0.2), "fluo")
 	# --- Paroi gauche : sac orange et bleu sanglé, bouteille d'oxygène, placards hauts
-	_b(e, Vector3(0.22, 0.95, 0.55), Vector3(-0.89, f + 1.05, 2.0), "bleu")
-	_b(e, Vector3(0.23, 0.35, 0.56), Vector3(-0.89, f + 1.38, 2.0), "orange")
+	_b(ar, Vector3(0.22, 0.95, 0.55), Vector3(-0.89, f + 1.05, 2.0), "bleu")
+	_b(ar, Vector3(0.23, 0.35, 0.56), Vector3(-0.89, f + 1.38, 2.0), "orange")
 	for yy in [0.75, 1.15]:
-		_b(e, Vector3(0.24, 0.04, 0.6), Vector3(-0.89, f + yy, 2.0), "noir")
+		_b(ar, Vector3(0.24, 0.04, 0.6), Vector3(-0.89, f + yy, 2.0), "noir")
 	for zz in [1.4, 1.6]:
-		_b(e, Vector3(0.14, 0.03, 0.03), Vector3(-0.93, f + 1.25, zz), "inox")
-	_cyl(e, 0.1, 0.8, Vector3(-0.85, f + 0.42, 2.68), "blanc")
-	_cyl(e, 0.045, 0.12, Vector3(-0.85, f + 0.88, 2.68), "inox")
-	_b(e, Vector3(0.12, 0.08, 0.1), Vector3(-0.85, f + 0.97, 2.68), "siege2")
-	_b(e, Vector3(0.25, 0.05, 0.05), Vector3(-0.9, f + 0.6, 2.68), "noir")
-	_b(e, Vector3(0.35, 0.35, 3.2), Vector3(-0.85, H - 0.32, 1.0), "placard")
-	_b(e, Vector3(0.36, 0.02, 3.2), Vector3(-0.85, H - 0.5, 1.0), "int")
+		_b(ar, Vector3(0.14, 0.03, 0.03), Vector3(-0.93, f + 1.25, zz), "inox")
+	_cyl(ar, 0.1, 0.8, Vector3(-0.85, f + 0.42, 2.68), "blanc")
+	_cyl(ar, 0.045, 0.12, Vector3(-0.85, f + 0.88, 2.68), "inox")
+	_b(ar, Vector3(0.12, 0.08, 0.1), Vector3(-0.85, f + 0.97, 2.68), "siege2")
+	_b(ar, Vector3(0.25, 0.05, 0.05), Vector3(-0.9, f + 0.6, 2.68), "noir")
+	_b(ar, Vector3(0.35, 0.35, 3.2), Vector3(-0.85, H - 0.32, 1.0), "placard")
+	_b(ar, Vector3(0.36, 0.02, 3.2), Vector3(-0.85, H - 0.5, 1.0), "int")
 	# Tapis antidérapant jaune devant les tiroirs
-	_b(e, Vector3(0.5, 0.01, 0.35), Vector3(0.25, f + 0.005, Z_CLOISON + 0.7), "fluo")
+	_b(av, Vector3(0.5, 0.01, 0.35), Vector3(0.25, f + 0.005, Z_CLOISON + 0.7), "fluo")
+
+
+## Habillage du fourgon : feux bleus, bandes, inscriptions, vitres de la cellule occultées, volumes de collision.
+static func _habillage_fourgon(e: Node3D) -> void:
+	var lz: float = Z_AR - Z_CLOISON
+	var cz: float = (Z_AR + Z_CLOISON) * 0.5
+	# Collisions : plancher et dessous, flancs, toit, cabine, cloison
+	_col(e, Vector3(W - 0.1, 0.5, L - 0.4), Vector3(0, SOL - 0.25, (Z_AV + Z_AR) * 0.5))
+	_col(e, Vector3(0.1, 2.0, L - 0.6), Vector3(-W * 0.5 + 0.08, 1.45, (Z_AV + Z_AR) * 0.5))
+	_col(e, Vector3(0.1, 2.0, Z_AR - 0.75), Vector3(W * 0.5 - 0.08, 1.45, (Z_AR + 0.75) * 0.5))
+	_col(e, Vector3(W, 0.1, lz), Vector3(0, 2.48, cz))
+	_col(e, Vector3(W - 0.1, 1.9, Z_CLOISON - Z_AV), Vector3(0, 1.4, (Z_AV + Z_CLOISON) * 0.5))
+	# Vitres latérales de la cellule : panneaux rouges par-dessus (cellule sanitaire fermée)
+	for cote in [-1.0, 1.0]:
+		var x: float = cote * 0.965
+		if cote < 0.0:
+			_b(e, Vector3(0.012, 0.76, Z_AR - 0.35 - (Z_CLOISON + 0.15)), Vector3(x, 1.72, (Z_AR - 0.35 + Z_CLOISON + 0.15) * 0.5), "rouge")
+		else:
+			_b(e, Vector3(0.012, 0.76, Z_AR - 0.35 - 0.8), Vector3(x, 1.72, (Z_AR - 0.35 + 0.8) * 0.5), "rouge")
+		# Côté cellule, l'occultation est blanche comme les parois
+		var z1: float = Z_CLOISON + 0.15 if cote < 0.0 else 0.8
+		_b(e, Vector3(0.01, 0.76, Z_AR - 0.35 - z1), Vector3(cote * 0.925, 1.72, (Z_AR - 0.35 + z1) * 0.5), "int")
+	# Rampe bleue sur l'avant du toit, feux aux coins arrière, feux de pénétration dans la calandre
+	var yt := H + 0.02
+	_b(e, Vector3(1.5, 0.08, 0.3), Vector3(0, yt + 0.04, -1.45), "noir")
+	var places: Array = [Vector3(-0.55, yt + 0.15, -1.45), Vector3(0.55, yt + 0.15, -1.45), Vector3(-0.8, yt - 0.06, Z_AR - 0.2), Vector3(0.8, yt - 0.06, Z_AR - 0.2), Vector3(-0.3, 0.86, Z_AV + 0.02), Vector3(0.3, 0.86, Z_AV + 0.02)]
+	for i in places.size():
+		var m: StandardMaterial3D = Tex.emissif(Color(0.15, 0.3, 1.0), 0.0)
+		e._mats_gyro.append(m)
+		var taille := Vector3(0.45, 0.16, 0.25) if i < 2 else (Vector3(0.18, 0.14, 0.18) if i < 4 else Vector3(0.14, 0.05, 0.03))
+		var g: Node3D = Geo.boite_mat(e, taille, places[i], m, false)
+		if i < 2:
+			var lum := OmniLight3D.new()
+			lum.light_color = Color(0.2, 0.35, 1.0)
+			lum.omni_range = 10.0
+			lum.light_energy = 0.0
+			g.add_child(lum)
+			e._gyros.append(lum)
+	# Bandes jaunes rétroréfléchissantes et inscriptions
+	var jaune := Color(1.0, 0.85, 0.1)
+	for cote in [-1.0, 1.0]:
+		var x: float = cote * 1.035
+		var z0: float = Z_CLOISON + 0.1 if cote < 0.0 else 0.8
+		_b(e, Vector3(0.01, 0.11, Z_AR - 0.25 - z0), Vector3(x, 1.2, (Z_AR - 0.25 + z0) * 0.5), "jaune")
+		_b(e, Vector3(0.01, 0.05, Z_AR - 0.25 - z0), Vector3(x * 0.995, 2.18, (Z_AR - 0.25 + z0) * 0.5), "jaune")
+		var r: float = cote * PI * 0.5
+		var zt: float = 1.6 if cote < 0.0 else 2.75
+		_texte(e, "SAPEURS-POMPIERS", Vector3(x * 0.985, 1.98, zt), r, 52, 0.0045, jaune)
+		_texte(e, "DE TOURAINE", Vector3(x * 0.985, 1.76, zt), r, 44, 0.0045, jaune)
+		_texte(e, "VÉHICULE DE SECOURS ET", Vector3(x, 1.0, zt), r, 40, 0.0036, jaune)
+		_texte(e, "D'ASSISTANCE AUX VICTIMES", Vector3(x, 0.84, zt), r, 40, 0.0036, jaune)
+		# Cartouche 18 / 112 près de l'arrière
+		var zc2: float = Z_AR - 0.75
+		_b(e, Vector3(0.01, 0.5, 0.45), Vector3(x * 0.985, 1.72, zc2), "jaune")
+		_b(e, Vector3(0.012, 0.44, 0.39), Vector3(x * 0.988, 1.72, zc2), "rouge")
+		_texte(e, "18", Vector3(x * 0.995, 1.82, zc2), r, 60, 0.0035, jaune)
+		_texte(e, "112", Vector3(x * 0.995, 1.61, zc2), r, 60, 0.0035, jaune)
+	# Cloison entre cabine et cellule, côté cellule, avec passe-documents vitré
+	_b(e, Vector3(1.74, 1.95, 0.04), Vector3(0, SOL + 0.98, Z_CLOISON + 0.04), "int", true)
+	_b(e, Vector3(0.8, 0.35, 0.02), Vector3(-0.1, 2.05, Z_CLOISON + 0.07), "vitre")
+	# Plancher gris antidérapant de la cellule
+	_b(e, Vector3(1.76, 0.02, lz - 0.1), Vector3(0, SOL + 0.005, cz), "plancher")
+
+
+## Portes du fourgon : elles suivent les animations d'ouverture du modèle.
+static func _portes_fourgon(e: Node3D, f: Dictionary) -> Dictionary:
+	var portes := {}
+	var textes := {"avant_gauche": "la porte conducteur", "avant_droite": "la porte passager", "laterale": "la porte latérale",
+		"arriere_gauche": "la porte arrière gauche", "arriere_droite": "la porte arrière droite"}
+	var points := {"avant_gauche": Vector3(-W * 0.5 - 0.35, 1.2, -1.6), "avant_droite": Vector3(W * 0.5 + 0.35, 1.2, -1.6),
+		"laterale": Vector3(W * 0.5 + 0.4, 1.2, -0.1), "arriere_gauche": Vector3(-0.55, 1.2, Z_AR + 0.45),
+		"arriere_droite": Vector3(0.55, 1.2, Z_AR + 0.45)}
+	for nom in f["portes"]:
+		var n: Node3D = f["portes"][nom]
+		# Volume de collision qui suit la porte
+		var bb := Crafter.boite_locale(n)
+		var corps := StaticBody3D.new()
+		n.add_child(corps)
+		var cs := CollisionShape3D.new()
+		var forme := BoxShape3D.new()
+		forme.size = bb.size
+		cs.shape = forme
+		cs.position = bb.get_center()
+		corps.add_child(cs)
+		if nom.begins_with("arriere"):
+			# Chevrons rouges et jaunes sur la face extérieure des portes arrière
+			var ch := MeshInstance3D.new()
+			var bm := BoxMesh.new()
+			bm.size = Vector3(bb.size.x * 0.92, bb.size.y * 0.42, 0.004)
+			ch.mesh = bm
+			ch.material_override = _m["chevrons"]
+			ch.position = Vector3(bb.get_center().x, bb.position.y + bb.size.y * 0.25, bb.position.z - 0.003)
+			n.add_child(ch)
+		portes[nom] = {"noeud": n, "type": "anim", "pistes": f["pistes"][nom], "ferme": 0.0, "ouvre": 1.0, "t": 0.0, "ouvert": false,
+			"point": points[nom], "texte": textes[nom]}
+		Crafter.poser_porte(n, f["pistes"][nom], 0.0)
+	return portes
 
 
 ## Les portes : chaque porte est un pivot animé par l'engin.

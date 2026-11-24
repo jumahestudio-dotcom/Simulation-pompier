@@ -13,6 +13,7 @@ const Pieton = preload("res://scripts/pieton.gd")
 const Victime = preload("res://scripts/victime.gd")
 const Feu = preload("res://scripts/feu.gd")
 const Hud = preload("res://scripts/hud.gd")
+const VsavModele = preload("res://scripts/vsav_modele.gd")
 const Collegue = preload("res://scripts/collegue.gd")
 const Son = preload("res://scripts/son.gd")
 
@@ -378,7 +379,7 @@ func _interactions_engins() -> Array:
 			var pos_l: Vector3 = pt["point"]
 			if dedans:
 				# De l'intérieur, on attrape la porte par sa poignée intérieure
-				pos_l = Vector3(clampf(pos_l.x, -0.7, 0.7), 1.2, clampf(pos_l.z, -0.6, 2.7))
+				pos_l = Vector3(clampf(pos_l.x, -0.7, 0.7), 1.2, clampf(pos_l.z, VsavModele.Z_CLOISON + 0.35, VsavModele.Z_AR - 0.25))
 			res.append({"id": "porte_" + nom, "pos": e.to_global(pos_l), "rayon": 1.2 if e.code == "FPT" else 1.4, "texte": verbe + str(pt["texte"]), "action": e.basculer_porte.bind(nom)})
 		if e.code == "FPT":
 			if e.porte_ouverte("avant_droite"):
@@ -391,12 +392,12 @@ func _interactions_engins() -> Array:
 		var arriere: bool = e.porte_ouverte("arriere_gauche") or e.porte_ouverte("arriere_droite")
 		if dedans:
 			if arriere:
-				res.append({"id": "descendre", "pos": e.to_global(Vector3(0, 1.75, 2.55)), "rayon": 1.0, "texte": "Descendre par l'arrière", "action": _descendre_cellule.bind(e, "arriere")})
+				res.append({"id": "descendre", "pos": e.to_global(Vector3(0, 1.75, VsavModele.Z_AR - 0.4)), "rayon": 1.0, "texte": "Descendre par l'arrière", "action": _descendre_cellule.bind(e, "arriere")})
 			if e.porte_ouverte("laterale"):
 				res.append({"id": "descendre_lat", "pos": e.to_global(Vector3(0.5, 1.75, -0.1)), "rayon": 1.0, "texte": "Descendre par la porte latérale", "action": _descendre_cellule.bind(e, "laterale")})
 		else:
 			if arriere:
-				res.append({"id": "monter_ar", "pos": e.to_global(Vector3(0, 1.0, 3.75)), "rayon": 1.1, "texte": "Monter dans la cellule", "action": _monter_cellule.bind(e)})
+				res.append({"id": "monter_ar", "pos": e.to_global(Vector3(0, 1.0, VsavModele.Z_AR + 0.8)), "rayon": 1.1, "texte": "Monter dans la cellule", "action": _monter_cellule.bind(e)})
 			if e.porte_ouverte("laterale"):
 				res.append({"id": "monter_lat", "pos": e.to_global(Vector3(1.75, 1.0, 0.1)), "rayon": 1.0, "texte": "Monter dans la cellule", "action": _monter_cellule.bind(e)})
 			if e.porte_ouverte("avant_droite"):
@@ -405,12 +406,12 @@ func _interactions_engins() -> Array:
 
 
 func _monter_cellule(e) -> void:
-	joueur.teleporter(e.to_global(Vector3(0.15, 0.78, 2.2)), e.rotation.y)
+	joueur.teleporter(e.to_global(Vector3(0.15, VsavModele.SOL + 0.06, VsavModele.Z_AR - 0.75)), e.rotation.y)
 
 
 func _descendre_cellule(e, par: String) -> void:
 	if par == "arriere":
-		joueur.teleporter(e.to_global(Vector3(0, 0.05, 4.2)), e.rotation.y + PI)
+		joueur.teleporter(e.to_global(Vector3(0, 0.05, VsavModele.Z_AR + 1.25)), e.rotation.y + PI)
 	else:
 		joueur.teleporter(e.to_global(Vector3(1.9, 0.05, 0.1)), e.rotation.y - PI * 0.5)
 

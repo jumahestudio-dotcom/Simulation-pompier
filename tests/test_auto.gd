@@ -26,7 +26,7 @@ func _ready() -> void:
 ## Ouvre les portes arrière par l'interaction, monte dans la cellule, ressort, referme.
 func _test_portes_vsav() -> void:
 	var v = main.vsav
-	main.joueur.teleporter(v.to_global(Vector3(0, 0.05, 3.9)), v.rotation.y + PI)
+	main.joueur.teleporter(v.to_global(Vector3(0, 0.05, v.VsavModele.Z_AR + 0.95)), v.rotation.y + PI)
 	await get_tree().create_timer(0.2).timeout
 	for nom in ["arriere_gauche", "arriere_droite"]:
 		v.basculer_porte(nom)

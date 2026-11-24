@@ -6,6 +6,7 @@ const Geo = preload("res://scripts/geo.gd")
 const Son = preload("res://scripts/son.gd")
 const Tex = preload("res://scripts/textures.gd")
 const VsavModele = preload("res://scripts/vsav_modele.gd")
+const Crafter = preload("res://scripts/crafter.gd")
 const FptModele = preload("res://scripts/fpt_modele.gd")
 
 signal arrive
@@ -49,9 +50,9 @@ func construire(p_code: String) -> void:
 		return
 	else:
 		nom_complet = "Véhicule de secours et d'assistance aux victimes"
-		longueur = 5.9
-		largeur = 2.1
 		portes = VsavModele.construire(self)
+		longueur = VsavModele.L
+		largeur = VsavModele.W
 		_cameras()
 		return
 	var rouge: Material = Tex.carrosserie(Color(0.72, 0.03, 0.03))
@@ -161,14 +162,14 @@ func _cameras() -> void:
 	if code == "VSAV":
 		# Vue depuis la place passager, et vue depuis la cellule (siège près de la porte arrière)
 		camera_cabine = Camera3D.new()
-		camera_cabine.position = Vector3(0.55, 1.78, -1.2)
+		camera_cabine.position = Vector3(0.47, 1.68, -1.12) if VsavModele.fourgon else Vector3(0.55, 1.78, -1.2)
 		camera_cabine.rotation_degrees = Vector3(-6, 8, 0)
 		camera_cabine.fov = 80.0
 		camera_cabine.far = 1500.0
 		camera_cabine.near = 0.03
 		add_child(camera_cabine)
 		camera_cellule = Camera3D.new()
-		camera_cellule.position = Vector3(0.72, 2.05, 2.45)
+		camera_cellule.position = Vector3(0.6, 1.95, VsavModele.Z_AR - 0.45) if VsavModele.fourgon else Vector3(0.72, 2.05, 2.45)
 		camera_cellule.rotation_degrees = Vector3(-22, 22, 0)
 		camera_cellule.fov = 85.0
 		camera_cellule.near = 0.03
@@ -265,7 +266,10 @@ func _animer_portes(delta: float) -> void:
 		p["t"] = move_toward(float(p["t"]), cible, delta * 1.4)
 		var k: float = smoothstep(0.0, 1.0, float(p["t"]))
 		var n: Node3D = p["noeud"]
-		if p["type"] == "pivot":
+		if p["type"] == "anim":
+			# Porte du modèle de fourgon : on suit son animation d'origine
+			Crafter.poser_porte(n, p["pistes"], float(p["t"]))
+		elif p["type"] == "pivot":
 			n.rotation.y = lerpf(float(p["ferme"]), float(p["ouvre"]), k)
 		elif p["type"] == "rideau":
 			# Rideau à lames : il s'enroule vers le haut

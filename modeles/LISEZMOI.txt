@@ -1,0 +1,5 @@
+Modèles 3D personnels (non publiés dans le dépôt).
+
+Placez ici le fichier du fourgon sous le nom exact : crafter.glb
+(le modèle Volkswagen Crafter déposé par Sellier). Le jeu le charge au démarrage
+et l'habille en VSAV (rouge, sans logo). S'il manque, le VSAV dessiné en code est utilisé.
