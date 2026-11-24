@@ -18,6 +18,8 @@ static func construire(racine: Node3D) -> void:
 	_grands_ensembles(racine, rng)
 	_pavillons_nord(racine, rng)
 	_zone_activites(racine, rng)
+	_densifier_tilleuls(racine, rng)
+	_densifier_ormeaux(racine, rng)
 	_rocade(racine, rng)
 	_bords_du_cher(racine, rng)
 	_rive_sud(racine, rng)
@@ -37,12 +39,8 @@ static func _voiture(racine: Node3D, pos: Vector3, c: Color, angle: float = 0.0)
 	VoitureModele.garer(Lot, t, c, pos, Basis(Vector3.UP, angle))
 
 
-static func _arbre(racine: Node3D, pos: Vector3, rng: RandomNumberGenerator, taille: float = 1.0) -> void:
-	Lot.cylindre(0.22 * taille, 4.0 * taille, pos + Vector3(0, 2.0 * taille, 0), Lot.couleur(Color(0.5, 0.42, 0.33)))
-	var f := Color(0.22, 0.36, 0.16).lerp(Color(0.38, 0.5, 0.22), float(rng.randi() % 4) / 3.0)
-	Lot.sphere(2.2 * taille, pos + Vector3(0, 5.0 * taille, 0), Lot.couleur(f))
-	Lot.sphere(1.6 * taille, pos + Vector3(1.0, 5.8, 0.5) * taille, Lot.couleur(f.lightened(0.07)))
-	Lot.sphere(1.5 * taille, pos + Vector3(-0.9, 5.4, -0.6) * taille, Lot.couleur(f.darkened(0.07)))
+static func _arbre(_racine: Node3D, pos: Vector3, rng: RandomNumberGenerator, taille: float = 1.0) -> void:
+	Details.arbre(pos, taille, rng)
 
 
 static func _parking(racine: Node3D, r: Rect2, rng: RandomNumberGenerator, remplissage: float) -> void:
@@ -162,7 +160,7 @@ static func _grands_ensembles(racine: Node3D, rng: RandomNumberGenerator) -> voi
 	# Espaces verts
 	for i in 40:
 		var p := Vector3(rng.randf_range(-315, -60), 0, rng.randf_range(-425, -160))
-		if _libre(p, 12.0, [Vector2(-290, -205), Vector2(-235, -255), Vector2(-230, -395), Vector2(-160, -365), Vector2(-90, -335)]) and not _dans_rects(p, [Rect2(-168, -215, 86, 50), Rect2(-285, -402, 22, 76), Rect2(-182, -284, 44, 28), Rect2(-132, -420, 44, 30)]):
+		if _libre(p, 12.0, [Vector2(-290, -205), Vector2(-235, -255), Vector2(-230, -395), Vector2(-160, -365), Vector2(-90, -335)]) and not _dans_rects(p, [Rect2(-168, -215, 86, 50), Rect2(-285, -402, 22, 76), Rect2(-182, -284, 44, 28), Rect2(-132, -420, 44, 30), Rect2(-318, -276, 56, 22), Rect2(-246, -198, 28, 28), Rect2(-128, -282, 66, 56), Rect2(-262, -372, 44, 34), Rect2(-324, -334, 28, 28), Rect2(-180, -332, 60, 22), Rect2(-100, -390, 40, 22)]):
 			_arbre(racine, p, rng, rng.randf_range(0.8, 1.2))
 
 
@@ -474,3 +472,97 @@ static func _panneaux(racine: Node3D) -> void:
 	var t: Label3D = Geo.texte(racine, "JOUÉ-LÈS-TOURS", pos + Vector3(0, 2.2, -0.07), 40, Color(0.05, 0.05, 0.05), false)
 	t.rotation.y = PI
 	t.outline_size = 0
+
+
+# ---------------------------------------------------------------------------
+# Densification : nouveaux bâtiments aux Tilleuls et aux Ormeaux
+# ---------------------------------------------------------------------------
+
+static func _densifier_tilleuls(racine: Node3D, rng: RandomNumberGenerator) -> void:
+	# Barres et tours supplémentaires
+	_tour(racine, Vector3(-290, 0, -265), 45, 12, 15, Color(0.95, 0.9, 0.82))
+	_tour(racine, Vector3(-232, 0, -185), 16, 16, 27, Color(0.9, 0.92, 0.95))
+	_tour(racine, Vector3(-310, 0, -320), 16, 16, 24, Color(0.97, 0.95, 0.9))
+	_tour(racine, Vector3(-150, 0, -322), 50, 12, 12, Color(0.93, 0.88, 0.8))
+	_tour(racine, Vector3(-80, 0, -380), 30, 12, 15, Color(0.9, 0.9, 0.88))
+	_parking(racine, Rect2(-312, -255, 44, 14), rng, 0.6)
+	_parking(racine, Rect2(-175, -310, 50, 14), rng, 0.5)
+	# Centre commercial de quartier : galerie vitrée, enseignes, parking
+	var c := Vector3(-95, 0, -262)
+	var bard: Material = Tex.plaque("bardage", Tex.bardage(), 1.0, 1.0, Color(0.82, 0.8, 0.76))
+	Geo.boite_mat(racine, Vector3(50, 6.5, 24), c + Vector3(0, 3.25, 0), bard)
+	_toiture(c, 50.0, 24.0, 6.5, rng)
+	Lot.boite(Vector3(46, 3.2, 0.15), c + Vector3(0, 1.7, 12.05), Tex.vitrage(1))
+	Lot.boite_c(Vector3(50.5, 0.4, 3.0), c + Vector3(0, 3.6, 13.4), Color(0.25, 0.3, 0.38))
+	for k in 9:
+		Lot.boite_c(Vector3(0.2, 3.4, 0.2), c + Vector3(-22 + k * 5.5, 1.7, 14.7), Color(0.6, 0.62, 0.65))
+	var enseignes: Array = [["SUPÉRETTE", Color(0.85, 0.35, 0.1)], ["PHARMACIE", Color(0.1, 0.6, 0.3)], ["BOULANGERIE", Color(0.55, 0.32, 0.15)], ["LA POSTE", Color(0.95, 0.75, 0.1)], ["KEBAB", Color(0.7, 0.12, 0.1)]]
+	for k in enseignes.size():
+		var e: Array = enseignes[k]
+		var px: float = -20.0 + k * 10.0
+		Lot.boite_c(Vector3(8.0, 1.2, 0.2), c + Vector3(px, 5.3, 12.15), e[1])
+		var t := Geo.texte(racine, e[0], c + Vector3(px, 5.3, 12.3), 60, Color(1, 1, 1), false)
+		t.outline_size = 0
+	Geo.texte(racine, "CENTRE COMMERCIAL DES TILLEULS", c + Vector3(0, 8.2, 12.2), 110, Color(0.25, 0.3, 0.4), false)
+	_parking(racine, Rect2(-120, -246, 50, 16), rng, 0.65)
+	# Groupe scolaire : bâtiment en L, préau, cour avec arbres et clôture
+	var e2 := Vector3(-240, 0, -355)
+	var crepi := Tex.plaque("crepi", Tex.crepi(), 3.0, 2.8, Color(0.98, 0.93, 0.82))
+	Geo.boite_mat(racine, Vector3(30, 7, 10), e2 + Vector3(0, 3.5, -5), crepi)
+	Geo.boite_mat(racine, Vector3(10, 7, 14), e2 + Vector3(-10, 3.5, 7), crepi)
+	Geo.boite(racine, Vector3(30.5, 0.5, 10.5), e2 + Vector3(0, 7.25, -5), Color(0.55, 0.3, 0.2), false)
+	Geo.boite(racine, Vector3(10.5, 0.5, 14.5), e2 + Vector3(-10, 7.25, 7), Color(0.55, 0.3, 0.2), false)
+	Geo.texte(racine, "GROUPE SCOLAIRE DES TILLEULS", e2 + Vector3(0, 5.6, 0.1), 60, Color(0.2, 0.3, 0.5), false)
+	Lot.boite_c(Vector3(14, 0.3, 8), e2 + Vector3(5, 3.2, 6), Color(0.6, 0.62, 0.65))
+	for k in 4:
+		Lot.cylindre(0.12, 3.1, e2 + Vector3(-1.5 + k * 4.3, 1.55, 9.6), Lot.couleur(Color(0.4, 0.45, 0.6)))
+	Lot.boite_c(Vector3(30, 0.03, 16), e2 + Vector3(5, 0.08, 8), Color(0.45, 0.45, 0.47))
+	for k in 3:
+		Details.arbre(e2 + Vector3(-2 + k * 8.0, 0, 13.0), 0.9, rng)
+	Lot.boite_c(Vector3(34, 1.8, 0.06), e2 + Vector3(2, 0.9, 16.5), Color(0.3, 0.45, 0.35))
+
+
+static func _densifier_ormeaux(racine: Node3D, rng: RandomNumberGenerator) -> void:
+	var bard_gris: Material = Tex.plaque("bardage", Tex.bardage(), 1.0, 1.0, Color(0.72, 0.74, 0.76))
+	var bard_sable: Material = Tex.plaque("bardage", Tex.bardage(), 1.0, 1.0, Color(0.85, 0.8, 0.68))
+	# Village d'artisans : cellules avec portes sectionnelles et enseignes
+	var metiers: Array = ["MENUISERIE", "CARROSSERIE", "PLOMBERIE", "IMPRIMERIE"]
+	for k in 4:
+		var c := Vector3(352 + k * 24.0, 0, 128)
+		Geo.boite_mat(racine, Vector3(22, 8, 18), c + Vector3(0, 4, 0), bard_gris if k % 2 == 0 else bard_sable)
+		_toiture(c, 22.0, 18.0, 8.0, rng)
+		for d in 2:
+			Lot.boite_c(Vector3(4.2, 4.5, 0.15), c + Vector3(-5 + d * 8.0, 2.25, -9.05), Color(0.55, 0.57, 0.6))
+			for r in 9:
+				Lot.boite_c(Vector3(4.2, 0.04, 0.17), c + Vector3(-5 + d * 8.0, 0.5 * r + 0.25, -9.06), Color(0.45, 0.47, 0.5))
+		Lot.boite(Vector3(1.0, 2.2, 0.12), c + Vector3(8.5, 1.1, -9.05), Tex.vitrage(2))
+		var t := Geo.texte(racine, metiers[k], c + Vector3(0, 6.3, -9.2), 70, Color(0.15, 0.2, 0.3), false)
+		t.rotation.y = PI
+		t.outline_size = 0
+		VoitureModele.garer(Lot, "utilitaire", COULEURS_VOITURES[(k * 2) % COULEURS_VOITURES.size()], c + Vector3(3, 0, -13), Basis(Vector3.UP, PI * 0.5))
+	# Immeuble de bureaux vitré
+	var b := Vector3(625, 0, 128)
+	Geo.boite_mat(racine, Vector3(36, 12, 20), b + Vector3(0, 6, 0), Tex.mat_beton(Color(0.85, 0.85, 0.85)))
+	for e in 3:
+		for face in [-1.0, 1.0]:
+			Lot.boite(Vector3(35, 2.6, 0.1), b + Vector3(0, 1.8 + e * 4.0, face * 10.05), Tex.vitrage(e))
+			Lot.boite_c(Vector3(36.2, 0.5, 0.3), b + Vector3(0, 3.7 + e * 4.0, face * 10.1), Color(0.75, 0.76, 0.78))
+	_toiture(b, 36.0, 20.0, 12.0, rng)
+	var tb := Geo.texte(racine, "PÔLE ENTREPRISES", b + Vector3(0, 13.5, -10.2), 90, Color(0.2, 0.3, 0.5), false)
+	tb.rotation.y = PI
+	_parking(racine, Rect2(600, 100, 50, 14), rng, 0.6)
+	# Station-service : auvent, pompes, boutique
+	var st := Vector3(395, 0, -133)
+	Lot.boite_c(Vector3(22, 0.8, 12), st + Vector3(0, 5.2, 0), Color(0.95, 0.95, 0.95))
+	Lot.boite_c(Vector3(22.1, 0.35, 12.1), st + Vector3(0, 5.0, 0), Color(0.15, 0.45, 0.25))
+	Lot.boite(Vector3(20, 0.05, 10), st + Vector3(0, 4.78, 0), Tex.emissif(Color(1.0, 0.98, 0.92), 0.8))
+	for k in 3:
+		Lot.boite_c(Vector3(0.4, 4.8, 0.4), st + Vector3(-7 + k * 7.0, 2.4, 0), Color(0.85, 0.85, 0.85))
+		Lot.boite_c(Vector3(1.0, 1.8, 0.6), st + Vector3(-7 + k * 7.0, 0.9, 1.5), Color(0.92, 0.92, 0.9))
+		Lot.boite_c(Vector3(1.02, 0.4, 0.62), st + Vector3(-7 + k * 7.0, 1.5, 1.5), Color(0.15, 0.45, 0.25))
+		Lot.boite_c(Vector3(2.4, 0.2, 1.4), st + Vector3(-7 + k * 7.0, 0.1, 1.5), Color(0.7, 0.7, 0.7))
+	Lot.boite_c(Vector3(24, 0.03, 16), st + Vector3(0, 0.08, 0), Color(0.3, 0.3, 0.32))
+	Geo.boite_mat(racine, Vector3(12, 3.5, 8), st + Vector3(0, 1.75, -11), Tex.mat_beton(Color(0.9, 0.9, 0.88)))
+	Lot.boite(Vector3(8, 2.4, 0.1), st + Vector3(0, 1.3, -6.95), Tex.vitrage(0))
+	Geo.texte(racine, "STATION", st + Vector3(0, 5.2, 6.1), 80, Color(1, 1, 1), false)
+	VoitureModele.garer(Lot, "berline", COULEURS_VOITURES[1], st + Vector3(-3.5, 0, 1.5), Basis(Vector3.UP, PI * 0.5))

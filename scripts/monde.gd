@@ -66,11 +66,7 @@ static func construire(racine: Node3D) -> void:
 				continue
 			if xa > -285.0 and xa < -212.0 and zz < 0.0:
 				continue
-			Geo.cylindre(racine, 0.25, 4.5, Vector3(xa, 2.25, zz), Color(0.55, 0.5, 0.42))
-			var feuillage := Color(0.24, 0.38, 0.17).lerp(Color(0.36, 0.48, 0.22), rng.randf())
-			Geo.sphere(racine, 2.4, Vector3(xa, 5.8, zz), feuillage)
-			Geo.sphere(racine, 1.8, Vector3(xa + 1.3, 6.6, zz + 0.6), feuillage.lightened(0.08))
-			Geo.sphere(racine, 1.7, Vector3(xa - 1.2, 6.3, zz - 0.7), feuillage.darkened(0.08))
+			Details.arbre(Vector3(xa, 0, zz), rng.randf_range(0.95, 1.15), rng, true)
 			# Lampadaire entre deux arbres
 			_lampadaire(racine, Vector3(xa + 11.0, 0, signf(zz) * 9.0))
 		xa += 22.0
@@ -116,7 +112,6 @@ static func _rangee(racine: Node3D, rng: RandomNumberGenerator, x0: float, x1: f
 		var profondeur := rng.randf_range(10.0, 14.0)
 		var hauteur := rng.randf_range(7.0, 16.0)
 		var z_facade := bord + sens * 4.0
-		var cz := z_facade + sens * profondeur * 0.5
 		var r := Rect2(x, minf(z_facade, z_facade + sens * profondeur), largeur, profondeur)
 		var libre := true
 		for res in RESERVES:
@@ -124,18 +119,16 @@ static func _rangee(racine: Node3D, rng: RandomNumberGenerator, x0: float, x1: f
 			if rr.intersects(r):
 				libre = false
 		if libre:
-			var c: Color = TUFFEAU[rng.randi() % TUFFEAU.size()]
 			var hauteur_et: float = floor(hauteur / 3.0) * 3.0
-			Geo.boite_mat(racine, Vector3(largeur - 0.4, hauteur_et, profondeur), Vector3(x + largeur * 0.5, hauteur_et * 0.5, cz), Tex.mat_facade(c))
-			# Corniche et toit d'ardoise à deux pans
-			Geo.boite(racine, Vector3(largeur - 0.1, 0.35, profondeur + 0.3), Vector3(x + largeur * 0.5, hauteur_et + 0.17, cz), Color(0.9, 0.88, 0.82), false)
-			Geo.toit(racine, largeur - 0.2, profondeur + 0.4, rng.randf_range(3.0, 4.5), Vector3(x + largeur * 0.5, hauteur_et + 0.35, cz), Tex.mat_ardoise(), true)
 			var commerce := rng.randf() < (0.7 if absf(bord) < 10.0 else 0.3)
-			Details.immeuble_centre(racine, rng, Vector3(x + largeur * 0.5, 0, z_facade), Vector3(0, 0, -sens), largeur, hauteur_et, profondeur, commerce)
-			# Cheminée
-			if rng.randf() < 0.6:
-				Geo.boite(racine, Vector3(0.7, 2.6, 0.9), Vector3(x + rng.randf_range(1.5, largeur - 1.5), hauteur_et + 2.0, cz + rng.randf_range(-1.5, 1.5)), Color(0.75, 0.68, 0.6), false)
-		x += largeur + rng.randf_range(0.0, 1.5)
+			# Angles de rue : n = (0,0,-sens) donne un axe "le long" de signe -sens selon x
+			var angles: Array = []
+			if x <= x0 + 2.5:
+				angles.append(sens)
+			if x + largeur >= x1 - 8.5:
+				angles.append(-sens)
+			Details.immeuble_ancien(racine, rng, Vector3(x + largeur * 0.5, 0, z_facade), Vector3(0, 0, -sens), largeur, hauteur_et, profondeur, commerce, angles)
+		x += largeur + rng.randf_range(0.0, 0.3)
 
 
 ## Une rangée d'immeubles le long d'une rue nord-sud. "bord" : x du bord de la chaussée.
@@ -147,7 +140,6 @@ static func _rangee_z(racine: Node3D, rng: RandomNumberGenerator, z0: float, z1:
 		var profondeur := rng.randf_range(10.0, 14.0)
 		var hauteur_et: float = floor(rng.randf_range(7.0, 16.0) / 3.0) * 3.0
 		var x_facade := bord + sens * 4.0
-		var cx := x_facade + sens * profondeur * 0.5
 		var r := Rect2(minf(x_facade, x_facade + sens * profondeur), z, profondeur, largeur)
 		var libre := true
 		for res in RESERVES:
@@ -155,15 +147,14 @@ static func _rangee_z(racine: Node3D, rng: RandomNumberGenerator, z0: float, z1:
 			if rr.intersects(r):
 				libre = false
 		if libre:
-			var c: Color = TUFFEAU[rng.randi() % TUFFEAU.size()]
 			var cz := z + largeur * 0.5
-			Geo.boite_mat(racine, Vector3(profondeur, hauteur_et, largeur - 0.4), Vector3(cx, hauteur_et * 0.5, cz), Tex.mat_facade(c))
-			Geo.boite(racine, Vector3(profondeur + 0.3, 0.35, largeur - 0.1), Vector3(cx, hauteur_et + 0.17, cz), Color(0.9, 0.88, 0.82), false)
-			Geo.toit(racine, profondeur + 0.4, largeur - 0.2, rng.randf_range(3.0, 4.5), Vector3(cx, hauteur_et + 0.35, cz), Tex.mat_ardoise(), false)
-			Details.immeuble_centre(racine, rng, Vector3(x_facade, 0, cz), Vector3(-sens, 0, 0), largeur, hauteur_et, profondeur, rng.randf() < 0.3)
-			if rng.randf() < 0.6:
-				Geo.boite(racine, Vector3(0.9, 2.6, 0.7), Vector3(cx + rng.randf_range(-1.5, 1.5), hauteur_et + 2.0, z + rng.randf_range(1.5, largeur - 1.5)), Color(0.75, 0.68, 0.6), false)
-		z += largeur + rng.randf_range(0.0, 1.5)
+			var angles: Array = []
+			if z <= z0 + 0.5:
+				angles.append(-sens)
+			if z + largeur >= z1 - 6.5:
+				angles.append(sens)
+			Details.immeuble_ancien(racine, rng, Vector3(x_facade, 0, cz), Vector3(-sens, 0, 0), largeur, hauteur_et, profondeur, rng.randf() < 0.3, angles)
+		z += largeur + rng.randf_range(0.0, 0.3)
 
 
 ## Le cœur d'un îlot du centre : jardins privés, arbres, murets et petites dépendances.
@@ -193,9 +184,7 @@ static func _coeur_ilot(racine: Node3D, rng: RandomNumberGenerator, r: Rect2) ->
 	# Arbres
 	for k in int(r.size.x * r.size.y / 500.0):
 		var p := Vector3(rng.randf_range(r.position.x + 3.0, r.end.x - 3.0), 0, rng.randf_range(r.position.y + 3.0, r.end.y - 3.0))
-		var t := rng.randf_range(0.8, 1.3)
-		Geo.cylindre(racine, 0.22 * t, 4.0 * t, p + Vector3(0, 2.0 * t, 0), Color(0.5, 0.42, 0.33))
-		Geo.sphere(racine, 2.3 * t, p + Vector3(0, 5.0 * t, 0), Color(0.22, 0.36, 0.16).lerp(Color(0.38, 0.5, 0.22), rng.randf()))
+		Details.arbre(p, rng.randf_range(0.8, 1.3), rng)
 	# Dépendances (ateliers, remises) à toit d'ardoise
 	for k in 3:
 		var l := rng.randf_range(6.0, 10.0)
@@ -225,6 +214,38 @@ static func _routes(racine: Node3D) -> void:
 				deja[n] = true
 				var p: Vector3 = Carte.NOEUDS[n]
 				Geo.boite_mat(racine, Vector3(l, 0.05, l), Vector3(p.x, 0.053, p.z), asph, false)
+	# Passages piétons et lignes d'arrêt aux carrefours des quartiers habités
+	var blanc := Lot.couleur(Color(0.9, 0.9, 0.88))
+	for ar in Carte.ARETES:
+		for sens in [0, 1]:
+			var n0: Vector3 = Carte.NOEUDS[ar[sens]]
+			var n1: Vector3 = Carte.NOEUDS[ar[1 - sens]]
+			if n0.x < -400.0 or n0.z > 160.0 or String(ar[sens]).begins_with("d_") or String(ar[sens]).begins_with("B") or String(ar[sens]) == "caserne":
+				continue
+			var l: float = Carte.largeur_arete(ar[0], ar[1])
+			if l >= 16.0 or n0.distance_to(n1) < 30.0:
+				continue
+			var dir := (n1 - n0).normalized()
+			var trav := Vector3(-dir.z, 0, dir.x)
+			var c := n0 + dir * 9.5
+			var nb := int(l / 1.0)
+			for k in nb:
+				var pos := c + trav * (-l * 0.5 + 0.5 + k * 1.0)
+				Lot.boite(Vector3(0.5, 0.02, 3.0) if absf(dir.x) < 0.5 else Vector3(3.0, 0.02, 0.5), pos + Vector3(0, 0.085, 0), blanc)
+			# Ligne d'arrêt sur la voie d'arrivée
+			var arret := n0 + dir * 12.0 + trav * (l * 0.25)
+			Lot.boite(Vector3(l * 0.5, 0.02, 0.3) if absf(dir.x) < 0.5 else Vector3(0.3, 0.02, l * 0.5), arret + Vector3(0, 0.085, 0), blanc)
+		# Marquage axial discontinu
+		var a: Vector3 = Carte.NOEUDS[ar[0]]
+		var bb: Vector3 = Carte.NOEUDS[ar[1]]
+		var deja_marquee := absf(a.x - bb.x) < 1.0 and a.z > -160.0 and a.z < 130.0 and bb.z > -160.0 and bb.z < 130.0
+		if not deja_marquee and Carte.largeur_arete(ar[0], ar[1]) < 16.0 and a.x > -400.0 and a.distance_to(bb) > 30.0:
+			var d := (bb - a).normalized()
+			var t := 14.0
+			while t < a.distance_to(bb) - 14.0:
+				var pm := a + d * t + Vector3(0, 0.085, 0)
+				Lot.boite(Vector3(0.15, 0.02, 3.0) if absf(d.x) < 0.5 else Vector3(3.0, 0.02, 0.15), pm, blanc)
+				t += 10.0
 
 
 static func _lampadaire(racine: Node3D, pos: Vector3) -> void:

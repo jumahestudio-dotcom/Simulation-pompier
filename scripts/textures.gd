@@ -397,3 +397,136 @@ static func emissif(c: Color, energie: float) -> StandardMaterial3D:
 	m.emission = c
 	m.emission_energy_multiplier = energie
 	return m
+
+
+# ---------------------------------------------------------------------------
+# Matériaux des façades en relief (fenêtres en vrai 3D posées par details.gd)
+# ---------------------------------------------------------------------------
+
+## Pierre de taille (tuffeau) sans fenêtres : assises de 40 cm, joints décalés, bandeau tous les 3 m.
+static func pierre_taille() -> ImageTexture:
+	if _textures.has("pierre_taille"):
+		return _textures["pierre_taille"]
+	var img := _bruit(256, 192, 0.05, 23)
+	_teinter(img, Color(0.85, 0.83, 0.79), Color(0.99, 0.98, 0.95), 0.03)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 5
+	# Pierres légèrement différentes les unes des autres
+	for y in range(0, 192, 24):
+		var decal := 0 if (y / 24) % 2 == 0 else 32
+		for x in range(decal - 64, 256, 64):
+			var d := rng.randf_range(-0.035, 0.035)
+			for yy in range(y + 1, y + 24):
+				for xx in range(maxi(x + 1, 0), mini(x + 64, 256)):
+					var c := img.get_pixel(xx, yy)
+					img.set_pixel(xx, yy, Color(c.r + d, c.g + d, c.b + d * 1.2))
+		_rect(img, 0, y, 256, 1, Color(0.76, 0.74, 0.7))
+		for x in range(decal, 256, 64):
+			_rect(img, x, y, 1, 24, Color(0.78, 0.76, 0.72))
+	var tex := _finir(img)
+	_textures["pierre_taille"] = tex
+	return tex
+
+
+## Brique rouge-orangé avec joints clairs.
+static func brique() -> ImageTexture:
+	if _textures.has("brique"):
+		return _textures["brique"]
+	var img := _bruit(256, 256, 0.08, 31)
+	_teinter(img, Color(0.5, 0.24, 0.16), Color(0.7, 0.36, 0.24), 0.05)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 9
+	for y in range(0, 256, 16):
+		var decal := 0 if (y / 16) % 2 == 0 else 24
+		for x in range(decal - 48, 256, 48):
+			var d := rng.randf_range(-0.08, 0.06)
+			for yy in range(y + 2, y + 16):
+				for xx in range(maxi(x + 2, 0), mini(x + 48, 256)):
+					var c := img.get_pixel(xx, yy)
+					img.set_pixel(xx, yy, Color(c.r + d, c.g + d * 0.8, c.b + d * 0.6))
+		_rect(img, 0, y, 256, 2, Color(0.78, 0.74, 0.68))
+		for x in range(decal, 256, 48):
+			_rect(img, x, y, 2, 16, Color(0.78, 0.74, 0.68))
+	var tex := _finir(img)
+	_textures["brique"] = tex
+	return tex
+
+
+## Enduit taloché, sans motif.
+static func enduit() -> ImageTexture:
+	if _textures.has("enduit"):
+		return _textures["enduit"]
+	var img := _bruit(256, 256, 0.12, 47)
+	_teinter(img, Color(0.88, 0.88, 0.87), Color(1.0, 1.0, 1.0), 0.045)
+	var tex := _finir(img)
+	_textures["enduit"] = tex
+	return tex
+
+
+## Lames de persiennes (blanc, à teinter).
+static func volet() -> ImageTexture:
+	if _textures.has("volet"):
+		return _textures["volet"]
+	var img := Image.create(64, 64, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0.95, 0.95, 0.95))
+	for y in range(0, 64, 8):
+		_rect(img, 0, y + 5, 64, 2, Color(0.62, 0.62, 0.62))
+		_rect(img, 0, y + 7, 64, 1, Color(0.8, 0.8, 0.8))
+	var tex := _finir(img)
+	_textures["volet"] = tex
+	return tex
+
+
+## Feuillage : touffes claires et sombres, pour que les arbres ne soient pas des boules lisses.
+static func feuillage() -> ImageTexture:
+	if _textures.has("feuillage"):
+		return _textures["feuillage"]
+	var img := _bruit(256, 256, 0.09, 61)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 3
+	for y in 256:
+		for x in 256:
+			var v: float = img.get_pixel(x, y).r
+			v = clampf(v * 1.6 - 0.3 + rng.randf_range(-0.25, 0.25), 0.0, 1.0)
+			img.set_pixel(x, y, Color(0.45, 0.45, 0.45).lerp(Color(1.15, 1.15, 1.1), v))
+	var tex := _finir(img)
+	_textures["feuillage"] = tex
+	return tex
+
+
+static func mat_pierre_taille(teinte: Color) -> StandardMaterial3D:
+	return plaque("pierre_taille", pierre_taille(), 3.2, 2.4, teinte, 0.9, 3.0)
+
+
+static func mat_brique() -> StandardMaterial3D:
+	return plaque("brique", brique(), 1.15, 1.15, Color.WHITE, 0.9, 4.0)
+
+
+static func mat_enduit(teinte: Color) -> StandardMaterial3D:
+	return plaque("enduit", enduit(), 2.0, 2.0, teinte, 0.95, 2.0)
+
+
+static func mat_volet(teinte: Color) -> StandardMaterial3D:
+	return plaque("volet", volet(), 0.5, 0.5, teinte, 0.7, 3.0)
+
+
+static func mat_feuillage(teinte: Color) -> StandardMaterial3D:
+	return plaque("feuillage", feuillage(), 1.6, 1.6, teinte, 0.95, 6.0)
+
+
+static func mat_zinc() -> StandardMaterial3D:
+	return plaque("zinc", enduit(), 0.6, 4.0, Color(0.3, 0.33, 0.36), 0.75, 1.0)
+
+
+## Vitrage : sombre et réfléchissant ; quelques teintes pour que les fenêtres ne soient pas toutes pareilles.
+static func vitrage(k: int) -> StandardMaterial3D:
+	var cle := "vitrage%d" % k
+	if _materiaux.has(cle):
+		return _materiaux[cle]
+	var teintes: Array = [Color(0.07, 0.09, 0.12), Color(0.1, 0.12, 0.15), Color(0.05, 0.06, 0.08), Color(0.13, 0.14, 0.15)]
+	var m := StandardMaterial3D.new()
+	m.albedo_color = teintes[k % teintes.size()]
+	m.metallic = 0.55
+	m.roughness = 0.05 + 0.04 * (k % 3)
+	_materiaux[cle] = m
+	return m

@@ -51,6 +51,120 @@ static func _p(pied: Vector3, b: Basis, a: float, y: float, d: float) -> Vector3
 # Immeubles du centre ancien
 # ---------------------------------------------------------------------------
 
+## Immeuble ancien complet du centre : corps de bâtiment, corniche, toit, cheminées, façade sur rue
+## (pierre de taille, enduit ou brique) avec fenêtres en relief, et façade arrière sur cour.
+## pied : milieu du bas de la façade sur rue ; n : direction de la rue (axe x ou z).
+## angles : côtés (-1 : début de la façade, +1 : fin) qui donnent sur une rue transversale et reçoivent des fenêtres.
+static func immeuble_ancien(racine: Node3D, rng: RandomNumberGenerator, pied: Vector3, n: Vector3, largeur: float, h_et: float, profondeur: float, commerce: bool, angles: Array = []) -> void:
+	var tirage := rng.randf()
+	var style := "pierre" if tirage < 0.55 else ("enduit" if tirage < 0.9 else "brique")
+	var mat_mur: Material
+	if style == "pierre":
+		mat_mur = Tex.mat_pierre_taille(TUFFEAUX[rng.randi() % TUFFEAUX.size()])
+	elif style == "enduit":
+		mat_mur = Tex.mat_enduit(ENDUITS[rng.randi() % ENDUITS.size()])
+	else:
+		mat_mur = Tex.mat_brique()
+	var selon_z := absf(n.x) > 0.5
+	var centre := pied - n * (profondeur * 0.5)
+	var taille := Vector3(profondeur, h_et, largeur - 0.4) if selon_z else Vector3(largeur - 0.4, h_et, profondeur)
+	Geo.boite_mat(racine, taille, centre + Vector3(0, h_et * 0.5, 0), mat_mur)
+	# Toit : ardoise le plus souvent, parfois zinc ; pente variable
+	var mat_toit: Material = Tex.mat_ardoise() if rng.randf() < 0.8 else Tex.mat_zinc()
+	var h_toit := rng.randf_range(3.0, 4.8)
+	if selon_z:
+		Geo.toit(racine, profondeur + 0.4, largeur - 0.2, h_toit, centre + Vector3(0, h_et + 0.35, 0), mat_toit, false)
+	else:
+		Geo.toit(racine, largeur - 0.2, profondeur + 0.4, h_toit, centre + Vector3(0, h_et + 0.35, 0), mat_toit, true)
+	# Corniche moulurée (deux ressauts) tout autour du toit
+	var b := _base(n)
+	var l := largeur - 0.4
+	var pierre_claire := Lot.couleur(Color(0.93, 0.91, 0.85))
+	Lot.boite(Vector3(l + 0.3, 0.22, profondeur + 0.3), centre + Vector3(0, h_et + 0.24, 0), pierre_claire, b)
+	Lot.boite(Vector3(l + 0.14, 0.16, profondeur + 0.14), centre + Vector3(0, h_et + 0.05, 0), pierre_claire, b)
+	# Cheminées en brique sur le faîtage, avec leurs pots
+	var nb_ch := rng.randi_range(1, 3)
+	for k in nb_ch:
+		var a: float = -l * 0.5 + (k + 0.5) * l / nb_ch + rng.randf_range(-0.8, 0.8)
+		var pc := centre + b.x * a + Vector3(0, h_et + h_toit * 0.75, 0) - n * rng.randf_range(-0.6, 0.6)
+		Lot.boite(Vector3(0.95, h_toit * 0.5 + 1.6, 0.6), pc + Vector3(0, h_toit * 0.25 + 0.4, 0), Tex.mat_brique(), b)
+		Lot.boite(Vector3(1.05, 0.12, 0.7), pc + Vector3(0, h_toit * 0.5 + 1.25, 0), pierre_claire, b)
+		for pk in 2:
+			Lot.cylindre(0.09, 0.35, pc + b.x * (-0.22 + pk * 0.44) + Vector3(0, h_toit * 0.5 + 1.48, 0), Lot.couleur(Color(0.62, 0.32, 0.2)))
+	immeuble_centre(racine, rng, pied, n, largeur, h_et, profondeur, commerce)
+	var volets: Color = VOLETS[rng.randi() % VOLETS.size()]
+	var avec_volets := rng.randf() < 0.75
+	_fenetres(rng, pied, b, l, h_et, style, volets, avec_volets, true)
+	# Façades latérales à l'angle d'une rue
+	for c in angles:
+		var cote: float = c
+		var pied_l := pied - n * (profondeur * 0.5) + b.x * (cote * l * 0.5)
+		_fenetres(rng, pied_l, _base(b.x * cote), profondeur, h_et, style, volets, avec_volets, true)
+	# Façade arrière sur cour : fenêtres plus simples, sans volets
+	var arriere := pied - n * profondeur
+	_fenetres(rng, arriere, _base(-n), l, h_et, style, volets, false, false)
+	for k in int(l / 4.5):
+		if rng.randf() < 0.6:
+			_lucarne(arriere, _base(-n), -l * 0.5 + (k + 0.5) * l / int(l / 4.5), h_et + 0.35)
+
+
+## Fenêtres en relief sur tous les étages d'une façade.
+static func _fenetres(rng: RandomNumberGenerator, pied: Vector3, b: Basis, l: float, h_et: float, style: String, volets: Color, avec_volets: bool, rue: bool) -> void:
+	var n_et := maxi(1, int((h_et - 3.5) / 2.8))
+	var pas := (h_et - 3.5) / n_et
+	var n_tr := maxi(1, int(l / 3.2))
+	var cadre := Lot.couleur(Color(0.96, 0.96, 0.94))
+	var pierre := Lot.couleur(Color(0.95, 0.93, 0.87) if style != "enduit" else Color(0.97, 0.96, 0.92))
+	var mat_volet := Tex.mat_volet(volets)
+	var w := minf(1.2, l / n_tr - 1.4)
+	if w < 0.6:
+		return
+	for e in n_et:
+		var f := 3.5 + e * pas
+		# Bandeau d'étage en pierre (sauf enduit)
+		if style != "enduit" and e > 0:
+			Lot.boite(Vector3(l, 0.16, 0.08), _p(pied, b, 0, f, 0.04), pierre, b)
+		var porte_fenetre := rue and e == 0 and pas > 2.6 and rng.randf() < 0.5
+		var h := minf(2.3 if porte_fenetre else 1.75, pas * (0.8 if porte_fenetre else 0.62))
+		var y0 := f + (0.12 if porte_fenetre else pas * 0.26)
+		for t in n_tr:
+			var a: float = -l * 0.5 + (t + 0.5) * l / n_tr
+			if not rue and rng.randf() < 0.2:
+				continue
+			var yc := y0 + h * 0.5
+			# Encadrement en saillie (4 pièces) : la vitre paraît en retrait
+			Lot.boite(Vector3(0.18, h + 0.36, 0.14), _p(pied, b, a - w * 0.5 - 0.09, yc, 0.07), pierre, b)
+			Lot.boite(Vector3(0.18, h + 0.36, 0.14), _p(pied, b, a + w * 0.5 + 0.09, yc, 0.07), pierre, b)
+			Lot.boite(Vector3(w, 0.2, 0.14), _p(pied, b, a, y0 + h + 0.08, 0.07), pierre, b)
+			if style == "pierre" and rue:
+				Lot.boite(Vector3(0.24, 0.3, 0.17), _p(pied, b, a, y0 + h + 0.12, 0.085), pierre, b)
+			# Appui saillant
+			Lot.boite(Vector3(w + 0.5, 0.09, 0.26), _p(pied, b, a, y0 - 0.06, 0.13), pierre, b)
+			# Dormant blanc, vitrage, petits bois
+			Lot.boite(Vector3(w, h, 0.03), _p(pied, b, a, yc, 0.015), cadre, b)
+			Lot.boite(Vector3(w - 0.12, h - 0.12, 0.03), _p(pied, b, a, yc, 0.03), Tex.vitrage(rng.randi() % 4), b)
+			Lot.boite(Vector3(0.05, h - 0.1, 0.03), _p(pied, b, a, yc, 0.05), cadre, b)
+			Lot.boite(Vector3(w - 0.1, 0.035, 0.03), _p(pied, b, a, y0 + h * 0.68, 0.05), cadre, b)
+			if porte_fenetre:
+				# Garde-corps en fer forgé devant la porte-fenêtre
+				Lot.boite(Vector3(w + 0.1, 0.04, 0.04), _p(pied, b, a, y0 + 0.95, 0.2), Lot.couleur(FER), b)
+				for k in 7:
+					Lot.boite(Vector3(0.02, 0.9, 0.02), _p(pied, b, a - w * 0.5 + k * w / 6.0, y0 + 0.5, 0.2), Lot.couleur(FER), b)
+			# Persiennes : ouvertes contre le mur, ou fermées
+			if avec_volets:
+				if rng.randf() < 0.14:
+					Lot.boite(Vector3(w - 0.04, h - 0.04, 0.04), _p(pied, b, a, yc, 0.07), mat_volet, b)
+				else:
+					for c in [-1.0, 1.0]:
+						Lot.boite(Vector3(w * 0.5, h, 0.04), _p(pied, b, a + c * (w * 0.75 + 0.2), yc, 0.04), mat_volet, b)
+
+
+## Pierres de tuffeau, enduits et volets du centre ancien.
+const TUFFEAUX: Array = [Color(1.0, 0.98, 0.93), Color(0.96, 0.93, 0.85), Color(0.98, 0.95, 0.88), Color(0.92, 0.89, 0.82)]
+const ENDUITS: Array = [Color(0.96, 0.91, 0.79), Color(0.93, 0.82, 0.62), Color(0.95, 0.85, 0.78), Color(0.88, 0.88, 0.86), Color(0.98, 0.96, 0.9), Color(0.9, 0.86, 0.72)]
+const VOLETS: Array = [Color(0.5, 0.58, 0.64), Color(0.55, 0.63, 0.55), Color(0.92, 0.92, 0.88), Color(0.72, 0.74, 0.74), Color(0.45, 0.2, 0.2), Color(0.38, 0.48, 0.58)]
+
+
 ## pied : milieu du bas de la façade côté rue ; n : direction de la rue.
 static func immeuble_centre(racine: Node3D, rng: RandomNumberGenerator, pied: Vector3, n: Vector3, largeur: float, h_et: float, profondeur: float, commerce: bool) -> void:
 	var b := _base(n)
@@ -70,7 +184,7 @@ static func immeuble_centre(racine: Node3D, rng: RandomNumberGenerator, pied: Ve
 	else:
 		_entree_immeuble(rng, pied, b, l)
 	# Balcon filant en fer forgé au premier étage, parfois au dernier
-	var niveaux: Array = [4.0]
+	var niveaux: Array = [3.62]
 	if h_et >= 12.0 and rng.randf() < 0.5:
 		niveaux.append(h_et - 2.0)
 	for yb in niveaux:
@@ -399,3 +513,39 @@ static func maison(rng: RandomNumberGenerator, centre: Vector3, face: float, lar
 	# Clôture grillagée sur les côtés de la parcelle
 	for sx in [-8.0, 8.0]:
 		Lot.boite_c(Vector3(0.05, 1.2, 18.0), avant + Vector3(sx, 0.6, -face * 9.5), Color(0.25, 0.35, 0.25))
+
+
+# ---------------------------------------------------------------------------
+# Arbres
+# ---------------------------------------------------------------------------
+
+const FEUILLAGES: Array = [Color(0.36, 0.5, 0.24), Color(0.42, 0.56, 0.27), Color(0.3, 0.45, 0.22), Color(0.48, 0.58, 0.3), Color(0.34, 0.47, 0.28)]
+
+
+## Arbre feuillu détaillé : tronc effilé, maîtresses branches et houppier fait de plusieurs touffes.
+## "platane" : écorce claire tachetée, houppier plus large.
+static func arbre(pos: Vector3, taille: float, rng: RandomNumberGenerator, platane: bool = false) -> void:
+	var h_tronc := (3.6 if platane else 3.0) * taille
+	var r := 0.2 * taille
+	var ecorce := Lot.couleur(Color(0.62, 0.58, 0.48) if platane else Color(0.4, 0.33, 0.26))
+	Lot.cylindre(r, h_tronc, pos + Vector3(0, h_tronc * 0.5, 0), ecorce)
+	Lot.cylindre(r * 1.35, 0.5, pos + Vector3(0, 0.25, 0), ecorce)
+	var feuille := Tex.mat_feuillage(FEUILLAGES[rng.randi() % FEUILLAGES.size()])
+	var feuille2 := Tex.mat_feuillage(FEUILLAGES[rng.randi() % FEUILLAGES.size()])
+	var R := (2.5 if platane else 2.1) * taille
+	var cime := pos + Vector3(0, h_tronc + R * 0.75, 0)
+	# Branches maîtresses
+	for k in 3:
+		var ang := k * TAU / 3.0 + rng.randf_range(-0.4, 0.4)
+		var dir := Vector3(cos(ang), 1.4, sin(ang)).normalized()
+		var axe := Basis(Vector3.UP.cross(dir).normalized(), Vector3.UP.angle_to(dir))
+		Lot.cylindre(r * 0.5, R * 1.1, pos + Vector3(0, h_tronc * 0.85, 0) + dir * R * 0.5, ecorce, axe)
+	# Houppier : une touffe centrale et une couronne de touffes irrégulières
+	Lot.sphere(R * 0.85, cime, feuille, 0.85)
+	var n := 6 + rng.randi() % 3
+	for k in n:
+		var ang := k * TAU / n + rng.randf_range(-0.3, 0.3)
+		var d := R * rng.randf_range(0.5, 0.75)
+		var p := cime + Vector3(cos(ang) * d, rng.randf_range(-0.35, 0.45) * R, sin(ang) * d)
+		Lot.sphere(R * rng.randf_range(0.5, 0.7), p, feuille if k % 2 == 0 else feuille2, rng.randf_range(0.7, 0.9))
+	Lot.sphere(R * 0.55, cime + Vector3(rng.randf_range(-0.3, 0.3) * R, R * 0.55, rng.randf_range(-0.3, 0.3) * R), feuille2, 0.8)

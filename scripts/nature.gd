@@ -65,7 +65,8 @@ static func construire(racine: Node3D) -> void:
 
 static func _feuillage(rng: RandomNumberGenerator) -> Material:
 	var teintes: Array = [Color(0.2, 0.33, 0.14), Color(0.26, 0.4, 0.17), Color(0.32, 0.45, 0.2), Color(0.22, 0.36, 0.2), Color(0.38, 0.47, 0.22)]
-	return Lot.couleur(teintes[rng.randi() % teintes.size()])
+	var t: Color = teintes[rng.randi() % teintes.size()]
+	return Tex.mat_feuillage(t.lightened(0.25))
 
 
 static func _foret(racine: Node3D, rng: RandomNumberGenerator, r: Rect2, nom: String, panneau: Vector3) -> void:
