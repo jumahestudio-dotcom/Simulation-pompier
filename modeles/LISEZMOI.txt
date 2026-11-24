@@ -1,5 +1,15 @@
-Modèles 3D personnels (non publiés dans le dépôt).
+Modèles 3D personnels de Sellier (jamais publiés dans le dépôt GitHub, qui est public).
 
-Placez ici le fichier du fourgon sous le nom exact : crafter.glb
-(le modèle Volkswagen Crafter déposé par Sellier). Le jeu le charge au démarrage
-et l'habille en VSAV (rouge, sans logo). S'il manque, le VSAV dessiné en code est utilisé.
+Copiez ici les fichiers .glb SANS les renommer. Le jeu les charge au démarrage.
+Si un fichier manque, le jeu garde le bâtiment ou le véhicule dessiné en code.
+
+Utilisés aujourd'hui :
+  volkswagen_crafter.glb                 VSAV (repeint en rouge, sans logo)
+  angers_shop_2_france.glb               immeubles à commerces du centre ancien
+  troyes_shop_8_france.glb               maisons à pans de bois du centre ancien
+  bordeaux_flat_2_corner_france.glb      immeubles d'angle du centre ancien
+  soviet_panelki__voxel_style_apartment_buildings.glb   barres des Tilleuls
+  modern_night_building_game-ready.glb   deux grandes tours des Tilleuls
+  fd0fcff7053d4d9f8829320a30d7087e.glb   immeuble de bureaux, ZA des Ormeaux
+  simple_industrial_storage_tank.glb     cuves de l'usine, ZA des Ormeaux
+  propane_and_gas_tanks_set_-_game_ready.glb   stock de gaz de l'usine

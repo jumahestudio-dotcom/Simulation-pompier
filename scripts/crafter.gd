@@ -1,10 +1,10 @@
 extends RefCounted
-## Charge le modèle 3D de fourgon déposé par le joueur (modeles/crafter.glb) et le prépare pour le VSAV :
+## Charge le modèle 3D de fourgon déposé par le joueur (modeles/volkswagen_crafter.glb) et le prépare pour le VSAV :
 ## mis à l'échelle réelle, tourné l'avant vers -z, peint en rouge, logos et texte de marque retirés,
 ## sièges de minibus et rideaux enlevés, vitres de la cellule occultées.
 ## Le fichier n'est pas dans le dépôt : s'il manque, le VSAV dessiné en code est utilisé.
 
-const CHEMIN := "res://modeles/crafter.glb"
+const CHEMINS := ["res://modeles/volkswagen_crafter.glb", "res://modeles/crafter.glb"]
 const ECHELLE := 1.35          # pneus de 0,70 m, largeur 2,04 m, empattement 4,5 m
 const DZ := 0.39               # décalage pour garder la cabine et la porte latérale à leur place
 
@@ -23,8 +23,15 @@ static var _modele: Node3D = null
 static var _essaye := false
 
 
+static func _chemin() -> String:
+	for c in CHEMINS:
+		if FileAccess.file_exists(c):
+			return c
+	return ""
+
+
 static func disponible() -> bool:
-	return FileAccess.file_exists(CHEMIN)
+	return _chemin() != ""
 
 
 ## Repère du modèle → repère de l'engin (avant vers -z).
@@ -40,8 +47,8 @@ static func _charger() -> Node3D:
 		return null
 	var doc := GLTFDocument.new()
 	var etat := GLTFState.new()
-	if doc.append_from_file(CHEMIN, etat) != OK:
-		push_warning("Modèle du VSAV illisible : " + CHEMIN)
+	if doc.append_from_file(_chemin(), etat) != OK:
+		push_warning("Modèle du VSAV illisible : " + _chemin())
 		return null
 	_modele = doc.generate_scene(etat)
 	return _modele

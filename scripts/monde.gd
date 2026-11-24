@@ -10,6 +10,7 @@ const Details = preload("res://scripts/details.gd")
 const Lot = preload("res://scripts/lot.gd")
 const VoitureModele = preload("res://scripts/voiture_modele.gd")
 const Caserne = preload("res://scripts/caserne.gd")
+const Modeles = preload("res://scripts/modeles3d.gd")
 
 const TUFFEAU: Array = [Color(0.95, 0.91, 0.80), Color(0.90, 0.86, 0.75), Color(1.0, 0.97, 0.88), Color(0.86, 0.81, 0.70)]
 const ARDOISE := Color(0.27, 0.30, 0.35)
@@ -112,6 +113,10 @@ static func _rangee(racine: Node3D, rng: RandomNumberGenerator, x0: float, x1: f
 		var profondeur := rng.randf_range(10.0, 14.0)
 		var hauteur := rng.randf_range(7.0, 16.0)
 		var z_facade := bord + sens * 4.0
+		var choix := _choisir_modele(rng, x <= x0 + 2.5, x1 - 2.0 - x, Vector3(0, 0, -sens), Vector3(-1, 0, 0))
+		if not choix.is_empty():
+			largeur = choix["largeur"]
+			profondeur = choix["profondeur"]
 		var r := Rect2(x, minf(z_facade, z_facade + sens * profondeur), largeur, profondeur)
 		var libre := true
 		for res in RESERVES:
@@ -127,8 +132,30 @@ static func _rangee(racine: Node3D, rng: RandomNumberGenerator, x0: float, x1: f
 				angles.append(sens)
 			if x + largeur >= x1 - 8.5:
 				angles.append(-sens)
-			Details.immeuble_ancien(racine, rng, Vector3(x + largeur * 0.5, 0, z_facade), Vector3(0, 0, -sens), largeur, hauteur_et, profondeur, commerce, angles)
+			if choix.is_empty() or not Modeles.poser_immeuble(racine, choix["m"], Vector3(x + largeur * 0.5, 0, z_facade), Vector3(0, 0, -sens), choix["s"], choix["miroir"]):
+				Details.immeuble_ancien(racine, rng, Vector3(x + largeur * 0.5, 0, z_facade), Vector3(0, 0, -sens), largeur, hauteur_et, profondeur, commerce, angles)
 		x += largeur + rng.randf_range(0.0, 0.3)
+
+
+## Remplace parfois l'immeuble dessiné par un modèle 3D (s'il est dans modeles/).
+## "debut" : premier immeuble de la rangée (angle de rue) ; "vers_debut" : direction du début de rangée.
+static func _choisir_modele(rng: RandomNumberGenerator, debut: bool, place: float, n: Vector3, vers_debut: Vector3) -> Dictionary:
+	var m: Dictionary = {}
+	var miroir := false
+	# (Pas de retournement en miroir : les normales des modèles retournés s'éclairent mal.)
+	if debut and Modeles.present(Modeles.ANGLE["f"]) and Modeles.cote_x(n).dot(vers_debut) > 0.0 and rng.randf() < 0.8:
+		# L'angle du modèle est côté +x : il ne sert que là où ce côté donne sur le carrefour
+		m = Modeles.ANGLE
+	else:
+		var dispo := Modeles.immeubles_disponibles()
+		if dispo.is_empty() or rng.randf() > 0.45:
+			return {}
+		m = dispo[rng.randi() % dispo.size()]
+	var s := rng.randf_range(0.92, 1.04)
+	var l: float = Modeles.largeur(m) * s
+	if l > place - 0.5:
+		return {}
+	return {"m": m, "s": s, "miroir": miroir, "largeur": l, "profondeur": Modeles.profondeur(m) * s}
 
 
 ## Une rangée d'immeubles le long d'une rue nord-sud. "bord" : x du bord de la chaussée.
@@ -140,6 +167,10 @@ static func _rangee_z(racine: Node3D, rng: RandomNumberGenerator, z0: float, z1:
 		var profondeur := rng.randf_range(10.0, 14.0)
 		var hauteur_et: float = floor(rng.randf_range(7.0, 16.0) / 3.0) * 3.0
 		var x_facade := bord + sens * 4.0
+		var choix := _choisir_modele(rng, z <= z0 + 0.5, z1 - z, Vector3(-sens, 0, 0), Vector3(0, 0, -1))
+		if not choix.is_empty():
+			largeur = choix["largeur"]
+			profondeur = choix["profondeur"]
 		var r := Rect2(minf(x_facade, x_facade + sens * profondeur), z, profondeur, largeur)
 		var libre := true
 		for res in RESERVES:
@@ -153,7 +184,8 @@ static func _rangee_z(racine: Node3D, rng: RandomNumberGenerator, z0: float, z1:
 				angles.append(-sens)
 			if z + largeur >= z1 - 6.5:
 				angles.append(sens)
-			Details.immeuble_ancien(racine, rng, Vector3(x_facade, 0, cz), Vector3(-sens, 0, 0), largeur, hauteur_et, profondeur, rng.randf() < 0.3, angles)
+			if choix.is_empty() or not Modeles.poser_immeuble(racine, choix["m"], Vector3(x_facade, 0, cz), Vector3(-sens, 0, 0), choix["s"], choix["miroir"]):
+				Details.immeuble_ancien(racine, rng, Vector3(x_facade, 0, cz), Vector3(-sens, 0, 0), largeur, hauteur_et, profondeur, rng.randf() < 0.3, angles)
 		z += largeur + rng.randf_range(0.0, 0.3)
 
 

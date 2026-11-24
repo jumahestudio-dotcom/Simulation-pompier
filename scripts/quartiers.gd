@@ -8,6 +8,7 @@ const Lot = preload("res://scripts/lot.gd")
 const VoitureModele = preload("res://scripts/voiture_modele.gd")
 const Details = preload("res://scripts/details.gd")
 const Nature = preload("res://scripts/nature.gd")
+const Modeles = preload("res://scripts/modeles3d.gd")
 
 const COULEURS_VOITURES: Array = [Color(0.15, 0.2, 0.4), Color(0.6, 0.6, 0.62), Color(0.08, 0.08, 0.1), Color(0.5, 0.1, 0.1), Color(0.85, 0.85, 0.85), Color(0.3, 0.35, 0.3), Color(0.75, 0.7, 0.6)]
 
@@ -57,7 +58,28 @@ static func _parking(racine: Node3D, r: Rect2, rng: RandomNumberGenerator, rempl
 		x += 2.5
 
 
+## Remplace une tour ou une barre par un modèle 3D, s'il est dans modeles/.
+static func _tour_modele(racine: Node3D, centre: Vector3, l: float, p: float, h: float) -> bool:
+	if absf(l - p) < 1.0 and h >= 39.0 and Modeles.present(Modeles.TOUR):
+		var bt := Modeles.boite(Modeles.TOUR)
+		return Modeles.poser(racine, Modeles.TOUR, centre, 0.0, h / bt.size.y) != null
+	var long := maxf(l, p)
+	if h <= 18.0 and long >= 30.0 and minf(l, p) <= 13.5 and Modeles.present(Modeles.BARRE):
+		var bb := Modeles.boite(Modeles.BARRE, "Apartment")
+		var nb := maxi(1, roundi(long / 44.0))
+		var s := long / (nb * bb.size.z)
+		var rot := PI * 0.5 if l > p else 0.0
+		var axe := Vector3(1, 0, 0) if l > p else Vector3(0, 0, 1)
+		for k in nb:
+			var c := centre + axe * ((k - (nb - 1) * 0.5) * bb.size.z * s)
+			Modeles.poser(racine, Modeles.BARRE, c, rot, s, "Apartment")
+		return true
+	return false
+
+
 static func _tour(racine: Node3D, centre: Vector3, l: float, p: float, h: float, teinte: Color) -> void:
+	if _tour_modele(racine, centre, l, p, h):
+		return
 	Geo.boite_mat(racine, Vector3(l, h, p), centre + Vector3(0, h * 0.5, 0), Tex.plaque("hlm", Tex.facade_hlm(), 3.0, 3.0, teinte))
 	Geo.boite(racine, Vector3(l + 0.4, 0.6, p + 0.4), centre + Vector3(0, h + 0.3, 0), Color(0.62, 0.62, 0.6), false)
 	Geo.boite(racine, Vector3(4, 3, 4), centre + Vector3(0, h + 1.8, 0), Color(0.75, 0.75, 0.72), false)
@@ -256,7 +278,10 @@ static func _zone_activites(racine: Node3D, rng: RandomNumberGenerator) -> void:
 		var bande := Color(0.85, 0.1, 0.1) if k % 2 == 0 else Color(0.95, 0.95, 0.95)
 		Geo.cylindre(racine, 1.6, 7.5, Vector3(610, 3.75 + k * 7.5, 92), bande)
 	for k in 3:
-		Geo.cylindre(racine, 3.0, 8.0, Vector3(480 + k * 8.0, 4.0, 100), Color(0.85, 0.85, 0.82))
+		if Modeles.poser(racine, Modeles.CUVE, Vector3(480 + k * 8.0, 0, 100), k * 0.7, 1.0) == null:
+			Geo.cylindre(racine, 3.0, 8.0, Vector3(480 + k * 8.0, 4.0, 100), Color(0.85, 0.85, 0.82))
+	# Stockage de bouteilles de gaz et de fûts dans la cour de l'usine
+	Modeles.poser(racine, Modeles.GAZ, Vector3(512, 0, 100), PI, 1.0, "", false)
 	# Toitures techniques : centrales de traitement d'air, lanterneaux, édicules
 	for bat in [[Vector3(390, 0, -85), 90.0, 55.0, 12.0], [Vector3(555, 0, -100), 110.0, 60.0, 9.0], [Vector3(375, 0, 45), 50.0, 30.0, 7.0], [Vector3(525, 0, 60), 80.0, 40.0, 14.0], [Vector3(605, 0, 40), 40.0, 30.0, 10.0]]:
 		_toiture(bat[0], bat[1], bat[2], bat[3], rng)
@@ -542,12 +567,13 @@ static func _densifier_ormeaux(racine: Node3D, rng: RandomNumberGenerator) -> vo
 		VoitureModele.garer(Lot, "utilitaire", COULEURS_VOITURES[(k * 2) % COULEURS_VOITURES.size()], c + Vector3(3, 0, -13), Basis(Vector3.UP, PI * 0.5))
 	# Immeuble de bureaux vitré
 	var b := Vector3(625, 0, 128)
-	Geo.boite_mat(racine, Vector3(36, 12, 20), b + Vector3(0, 6, 0), Tex.mat_beton(Color(0.85, 0.85, 0.85)))
-	for e in 3:
-		for face in [-1.0, 1.0]:
-			Lot.boite(Vector3(35, 2.6, 0.1), b + Vector3(0, 1.8 + e * 4.0, face * 10.05), Tex.vitrage(e))
-			Lot.boite_c(Vector3(36.2, 0.5, 0.3), b + Vector3(0, 3.7 + e * 4.0, face * 10.1), Color(0.75, 0.76, 0.78))
-	_toiture(b, 36.0, 20.0, 12.0, rng)
+	if Modeles.poser(racine, Modeles.BUREAUX, b, PI, 0.75) == null:
+		Geo.boite_mat(racine, Vector3(36, 12, 20), b + Vector3(0, 6, 0), Tex.mat_beton(Color(0.85, 0.85, 0.85)))
+		for e in 3:
+			for face in [-1.0, 1.0]:
+				Lot.boite(Vector3(35, 2.6, 0.1), b + Vector3(0, 1.8 + e * 4.0, face * 10.05), Tex.vitrage(e))
+				Lot.boite_c(Vector3(36.2, 0.5, 0.3), b + Vector3(0, 3.7 + e * 4.0, face * 10.1), Color(0.75, 0.76, 0.78))
+		_toiture(b, 36.0, 20.0, 12.0, rng)
 	var tb := Geo.texte(racine, "PÔLE ENTREPRISES", b + Vector3(0, 13.5, -10.2), 90, Color(0.2, 0.3, 0.5), false)
 	tb.rotation.y = PI
 	_parking(racine, Rect2(600, 100, 50, 14), rng, 0.6)
