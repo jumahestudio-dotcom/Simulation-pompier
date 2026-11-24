@@ -71,6 +71,25 @@ static func _b(parent: Node, taille: Vector3, pos: Vector3, nom_mat: String, sol
 	return Geo.boite_mat(parent, taille, pos, _m[nom_mat], solide)
 
 
+## Vitre de porte de cabine : trapèze dont le bord avant suit le pare-brise.
+static func _vitre_porte(parent: Node) -> void:
+	if not _m.has("vitre_2f"):
+		var m2: StandardMaterial3D = _m["vitre"].duplicate()
+		m2.cull_mode = BaseMaterial3D.CULL_DISABLED
+		_m["vitre_2f"] = m2
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_normal(Vector3.RIGHT)
+	for v in [Vector3(0, 0.03, 0.08), Vector3(0, 0.03, 0.9), Vector3(0, 0.84, 0.9), Vector3(0, 0.84, 0.66)]:
+		st.add_vertex(v)
+	for i in [0, 1, 2, 0, 2, 3]:
+		st.add_index(i)
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	mi.material_override = _m["vitre_2f"]
+	parent.add_child(mi)
+
+
 ## Collision seule (boîte invisible).
 static func _col(parent: Node, taille: Vector3, pos: Vector3) -> void:
 	var corps := StaticBody3D.new()
@@ -150,7 +169,7 @@ static func _carrosserie_galbee(e: Node3D) -> void:
 		[Z_AV + 0.15, 0.54, 1.06, 1.0, 0.94],
 		[Z_AV + 0.4, 0.54, 1.14, 1.03, 0.98],
 		[Z_AV + 0.7, 0.54, 1.23, 1.04, 1.0],
-		[-1.95, 0.54, 1.33, 1.04, 1.01],
+		[-2.08, 0.54, 1.3, 1.04, 1.01],
 	], 0.2, "rouge")
 	# Pare-chocs avant blanc, enveloppant
 	_galbe(e, [
@@ -161,10 +180,10 @@ static func _carrosserie_galbee(e: Node3D) -> void:
 	], 0.12, "blanc")
 	# Pavillon : il démarre au-dessus du pare-brise et couvre toute la cellule (forme ouverte en dessous)
 	_pavillon(e, [
-		[-1.38, 2.38, 2.47, W * 0.5 - 0.06, W * 0.5 - 0.2],
-		[-1.3, 2.35, 2.6, W * 0.5 - 0.01, W * 0.5 - 0.14],
-		[-1.15, 2.32, 2.71, W * 0.5 + 0.005, W * 0.5 - 0.11],
-		[-0.95, 2.3, H + 0.02, W * 0.5 + 0.005, W * 0.5 - 0.1],
+		[-1.32, 2.38, 2.46, W * 0.5 - 0.08, W * 0.5 - 0.2],
+		[-1.24, 2.35, 2.6, W * 0.5 - 0.03, W * 0.5 - 0.14],
+		[-1.09, 2.32, 2.71, W * 0.5 + 0.005, W * 0.5 - 0.11],
+		[-0.89, 2.3, H + 0.02, W * 0.5 + 0.005, W * 0.5 - 0.1],
 		[Z_AR - 0.12, 2.3, H + 0.02, W * 0.5 + 0.005, W * 0.5 - 0.1],
 		[Z_AR - 0.02, 2.32, H - 0.02, W * 0.5 - 0.02, W * 0.5 - 0.14],
 	], 0.24)
@@ -254,21 +273,22 @@ static func _cabine(e: Node3D) -> void:
 		ph2.rotation.x = 0.15
 		_b(e, Vector3(0.12, 0.06, 0.04), Vector3(cote * 0.9, 0.62, Z_AV - 0.02), "orange")
 	# Pare-brise incliné et montants
-	var pb := _b(e, Vector3(W - 0.16, 1.3, 0.04), Vector3(0, 1.88, -1.67), "vitre")
-	pb.rotation.x = 0.52
+	# (de z -2.1, y 1.28 au bas, jusqu'à z -1.3, y 2.42 en haut : dans le prolongement du capot)
+	var pb := _b(e, Vector3(W - 0.16, 1.39, 0.04), Vector3(0, 1.85, -1.7), "vitre")
+	pb.rotation.x = 0.612
 	for cote in [-1.0, 1.0]:
-		var montant := _b(e, Vector3(0.1, 1.32, 0.08), Vector3(cote * (W * 0.5 - 0.05), 1.88, -1.67), "rouge")
-		montant.rotation.x = 0.52
+		var montant := _b(e, Vector3(0.1, 1.41, 0.08), Vector3(cote * (W * 0.5 - 0.09), 1.85, -1.7), "rouge")
+		montant.rotation.x = 0.612
 	# Bas de caisse sous les portes avant
 	for cote in [-1.0, 1.0]:
 		_b(e, Vector3(0.05, 0.25, 1.0), Vector3(cote * (W * 0.5 - 0.02), 0.62, -1.5), "noir")
 		# Marchepied
 		_b(e, Vector3(0.25, 0.05, 0.7), Vector3(cote * (W * 0.5 - 0.1), 0.42, -1.5), "noir")
 	# Intérieur de la cabine : planche de bord, volant, sièges
-	_b(e, Vector3(W - 0.15, 0.4, 0.45), Vector3(0, 1.3, -2.05), "noir", true)
-	_b(e, Vector3(W - 0.15, 0.06, 0.3), Vector3(0, 1.52, -1.95), "gris")
+	_b(e, Vector3(W - 0.15, 0.3, 0.3), Vector3(0, 1.2, -1.85), "noir", true)
+	_b(e, Vector3(W - 0.15, 0.05, 0.25), Vector3(0, 1.37, -1.8), "gris")
 	_cyl(e, 0.2, 0.04, Vector3(-0.5, 1.55, -1.72), "noir", Vector3(1.1, 0, 0))
-	_b(e, Vector3(0.3, 0.16, 0.04), Vector3(0.1, 1.6, -1.9), "noir")
+	_b(e, Vector3(0.3, 0.14, 0.04), Vector3(0.1, 1.46, -1.72), "noir")
 	for xs in [-0.5, 0.25, 0.65]:
 		_b(e, Vector3(0.42 if xs < 0.0 else 0.38, 0.12, 0.45), Vector3(xs, 1.08, -1.2), "siege")
 		_b(e, Vector3(0.42 if xs < 0.0 else 0.38, 0.65, 0.1), Vector3(xs, 1.45, -1.02), "siege")
@@ -317,7 +337,7 @@ static func _caisse(e: Node3D) -> void:
 			_b(e, Vector3(0.01, 0.06, Z_AR - z0), Vector3(xs, 1.12, (Z_AR + z0) * 0.5), "jaune")
 		_b(e, Vector3(0.01, 0.06, Z_AR + 0.95), Vector3(xs, 2.5, (Z_AR - 0.95) * 0.5), "jaune")
 		_b(e, Vector3(0.01, 1.5, 0.06), Vector3(xs, 1.87, Z_AR - 0.3), "jaune")
-		_b(e, Vector3(0.01, 0.06, 1.05), Vector3(xs, 1.12, -2.45), "jaune")
+		_b(e, Vector3(0.01, 0.06, 0.5), Vector3(cote * 1.05, 1.0, -2.3), "jaune")
 
 
 static func _arriere(e: Node3D) -> void:
@@ -327,6 +347,10 @@ static func _arriere(e: Node3D) -> void:
 		_b(e, Vector3(0.1, 0.85, 0.07), Vector3(cote * (W * 0.5 - 0.06), 1.15, Z_AR - 0.0), "feu_ar")
 		_b(e, Vector3(0.1, 0.12, 0.07), Vector3(cote * (W * 0.5 - 0.06), 1.65, Z_AR - 0.0), "orange")
 	_b(e, Vector3(W - 0.35, 0.2, 0.06), Vector3(0, H - 0.12, Z_AR - 0.03), "rouge")
+	# Flancs adoucis : bas de caisse et montant avant de la cellule arrondis
+	for cote in [-1.0, 1.0]:
+		_cyl(e, 0.07, Z_AR - Z_CLOISON - 0.1, Vector3(cote * (W * 0.5 - 0.05), SOL - 0.26, (Z_AR + Z_CLOISON) * 0.5), "rouge", Vector3(PI * 0.5, 0, 0))
+		_cyl(e, 0.06, 1.85, Vector3(cote * (W * 0.5 - 0.04), 1.4, Z_CLOISON - 0.02), "rouge")
 	# Arêtes arrière arrondies
 	for cote in [-1.0, 1.0]:
 		_cyl(e, 0.07, 2.1, Vector3(cote * (W * 0.5 - 0.05), 1.45, Z_AR - 0.06), "rouge")
@@ -340,8 +364,8 @@ static func _arriere(e: Node3D) -> void:
 
 static func _feux_et_gyros(e: Node3D) -> void:
 	# Rampe bleue sur le toit à l'avant, feux bleus aux coins arrière, feux de pénétration
-	_b(e, Vector3(1.5, 0.1, 0.3), Vector3(0, H + 0.05, -0.85), "noir")
-	var places: Array = [Vector3(-0.55, H + 0.17, -0.85), Vector3(0.55, H + 0.17, -0.85), Vector3(-W * 0.5 + 0.15, H + 0.12, Z_AR - 0.15), Vector3(W * 0.5 - 0.15, H + 0.12, Z_AR - 0.15), Vector3(-0.32, 0.62, Z_AV - 0.03), Vector3(0.32, 0.62, Z_AV - 0.03)]
+	_b(e, Vector3(1.5, 0.1, 0.3), Vector3(0, H + 0.05, -0.75), "noir")
+	var places: Array = [Vector3(-0.55, H + 0.17, -0.75), Vector3(0.55, H + 0.17, -0.75), Vector3(-W * 0.5 + 0.15, H + 0.12, Z_AR - 0.15), Vector3(W * 0.5 - 0.15, H + 0.12, Z_AR - 0.15), Vector3(-0.32, 0.62, Z_AV - 0.03), Vector3(0.32, 0.62, Z_AV - 0.03)]
 	for i in places.size():
 		var m: StandardMaterial3D = Tex.emissif(Color(0.15, 0.3, 1.0), 0.0)
 		e._mats_gyro.append(m)
@@ -383,7 +407,7 @@ static func _inscriptions(e: Node3D) -> void:
 		_texte(e, "18", Vector3(x + cote * 0.01, 2.05, z), cote * PI * 0.5, 60, 0.0035, jaune)
 		_texte(e, "112", Vector3(x + cote * 0.01, 1.84, z), cote * PI * 0.5, 60, 0.0035, jaune)
 	# Code de l'engin à l'avant, en haut du pare-brise
-	var av := _texte(e, "VSAV 1 · JOUÉ-LÈS-TOURS", Vector3(0, 2.56, -1.33), PI, 40, 0.0035, Color(1, 1, 1))
+	var av := _texte(e, "VSAV 1 · JOUÉ-LÈS-TOURS", Vector3(0, 2.55, -1.27), PI, 40, 0.0035, Color(1, 1, 1))
 	av.rotation.x = 1.0
 
 
@@ -538,9 +562,16 @@ static func _portes(e: Node3D) -> Dictionary:
 		pa.position = Vector3(cote * (W * 0.5 - 0.01), 0, -2.0)
 		e.add_child(pa)
 		_b(pa, Vector3(0.05, 0.95, 1.0), Vector3(0, 0.98, 0.5), "rouge", true)
-		_b(pa, Vector3(0.05, 0.85, 0.12), Vector3(0, 1.88, 0.94), "rouge")
-		_b(pa, Vector3(0.03, 0.8, 0.85), Vector3(0, 1.86, 0.43), "vitre")
-		_b(pa, Vector3(0.05, 0.06, 1.0), Vector3(0, 2.3, 0.5), "rouge")
+		# Haut de porte : rentre vers l'intérieur (galbe), vitre au bord avant incliné comme le pare-brise
+		var haut := Node3D.new()
+		haut.position = Vector3(0, 1.42, 0)
+		haut.rotation.z = cote * 0.09
+		pa.add_child(haut)
+		_b(haut, Vector3(0.05, 0.86, 0.1), Vector3(0, 0.44, 0.95), "rouge")
+		_b(haut, Vector3(0.05, 0.06, 0.4), Vector3(0, 0.87, 0.8), "rouge")
+		var pied_a := _b(haut, Vector3(0.05, 1.07, 0.08), Vector3(0, 0.44, 0.31), "rouge")
+		pied_a.rotation.x = 0.611
+		_vitre_porte(haut)
 		_b(pa, Vector3(0.01, 0.06, 1.0), Vector3(cote * 0.03, 1.12, 0.5), "jaune")
 		_b(pa, Vector3(0.04, 0.04, 0.18), Vector3(cote * 0.04, 1.3, 0.8), "noir")
 		_b(pa, Vector3(0.02, 0.85, 0.95), Vector3(-cote * 0.035, 0.98, 0.5), "gris")
