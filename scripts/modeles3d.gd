@@ -16,6 +16,21 @@ const TOUR := "modern_night_building_game-ready.glb"
 const BUREAUX := "fd0fcff7053d4d9f8829320a30d7087e.glb"
 const CUVE := "simple_industrial_storage_tank.glb"
 const GAZ := "propane_and_gas_tanks_set_-_game_ready.glb"
+const MAISON := "tramain_house_1_france.glb"
+const POTEAU := "damaged_firehydrant.glb"
+const ARBRE := "tree_low_poly_lowpoly.glb"   # deux arbres : "Tree 1" et "Tree 2"
+const PLANTES := "scanned_plants_and_grass_free_download.glb"   # massifs : "Plants*#6" à "Plants*#16"
+const RUE := "street_objects_pack_1_revamped.glb"
+## Objets du pack de mobilier urbain (numéro de l'objet sous RootNode)
+const BANC_ROT := 0.0   # rotation à ajouter pour que le banc ait le dossier côté immeubles
+const MOBILIER := {"banc_bois": "RootNode#42", "banc_metal": "RootNode#46", "poubelle": "RootNode#26", "jardiniere": "RootNode#58", "poteau": "RootNode#11"}
+
+## Voitures : fichier, matériaux de peinture, matériaux et nœuds à cacher (logos, noms, plaques).
+## L'avant des fichiers est vers -x : on les tourne d'un quart de tour.
+const VOITURES := {
+	"kodiaq": {"f": "skoda_kodiaq_2024.glb", "peinture": "e_Carpaint", "mats": ["lICENSE", "e_chrome_Unique_Dark", "Texts_Texture", "text_ui"], "noeuds": []},
+	"octavia": {"f": "skoda_octavia_combi_2024.glb", "peinture": "e_Carpaint", "mats": ["Material.006", "E_Chrome.011", "Texts_Texture", "text_ui"], "noeuds": ["Object_47"]},
+}
 const ANGLE := {"f": "bordeaux_flat_2_corner_france.glb", "x0": -11.5, "x1": 15.3, "zf": 7.3, "zb": -3.9, "h": 18.6, "angle": true}
 
 static var _cache := {}
@@ -50,7 +65,15 @@ static func instance(nom: String, garder: String = "") -> Node3D:
 		var o := _original(nom)
 		if o != null and garder != "":
 			o = o.duplicate()
-			var g := o.find_child(garder, true, false)
+			var g: Node = null
+			if garder.contains("#"):
+				# "parent#numéro" : garder l'enfant numéro N du nœud "parent" (noms illisibles dans le fichier)
+				var morceaux := garder.split("#")
+				var par := o.find_child(morceaux[0], true, false)
+				if par != null and int(morceaux[1]) < par.get_child_count():
+					g = par.get_child(int(morceaux[1]))
+			else:
+				g = o.find_child(garder, true, false)
 			if g != null:
 				for frere in g.get_parent().get_children():
 					if frere != g:
@@ -156,3 +179,45 @@ static func poser_immeuble(racine: Node3D, m: Dictionary, pied: Vector3, n: Vect
 ## Direction, dans le monde, du côté "+x" du modèle une fois tourné vers la rue.
 static func cote_x(n: Vector3) -> Vector3:
 	return Basis(Vector3.UP, atan2(n.x, n.z)) * Vector3.RIGHT
+
+
+static var _invisible: StandardMaterial3D = null
+
+
+## Pose une voiture de modèle "type" (sans logo), avant tourné selon "angle" (0 = avant vers -z).
+static func voiture(racine: Node3D, type: String, pos: Vector3, angle: float, couleur: Color) -> Node3D:
+	var v: Dictionary = VOITURES[type]
+	var inst := poser(racine, v["f"], pos, angle - PI * 0.5, 1.0)
+	if inst == null:
+		return null
+	if _invisible == null:
+		_invisible = StandardMaterial3D.new()
+		_invisible.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_invisible.albedo_color = Color(0, 0, 0, 0)
+	var peinture: StandardMaterial3D = null
+	for mi in inst.find_children("*", "MeshInstance3D", true, false):
+		var m: MeshInstance3D = mi
+		if str(m.name) in v["noeuds"]:
+			m.visible = false
+			continue
+		var caches := 0
+		var nb := m.mesh.get_surface_count()
+		for s in nb:
+			var mat := m.mesh.surface_get_material(s)
+			if mat == null:
+				continue
+			var nom := mat.resource_name
+			for c in v["mats"]:
+				if nom.begins_with(c):
+					m.set_surface_override_material(s, _invisible)
+					caches += 1
+					break
+			if nom.begins_with(v["peinture"]) and mat is StandardMaterial3D:
+				if peinture == null:
+					peinture = (mat as StandardMaterial3D).duplicate()
+					peinture.albedo_color = couleur
+					peinture.albedo_texture = null
+				m.set_surface_override_material(s, peinture)
+		if caches == nb:
+			m.visible = false
+	return inst

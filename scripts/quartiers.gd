@@ -470,8 +470,9 @@ static func _campagne(racine: Node3D, rng: RandomNumberGenerator) -> void:
 		z += rng.randf_range(80.0, 130.0)
 	# Ferme : maison, grange, silo
 	var tuffeau: Material = Tex.plaque("tuffeau_uni", Tex.beton(), 3.0, 3.0, Color(0.95, 0.9, 0.78))
-	Geo.boite_mat(racine, Vector3(16, 6, 9), Vector3(-610, 3, -120), tuffeau)
-	Geo.toit(racine, 16.6, 9.6, 4.0, Vector3(-610, 6, -120), Tex.mat_ardoise(), true)
+	if Modeles.poser(racine, Modeles.MAISON, Vector3(-610, 0, -120), PI, 1.0) == null:
+		Geo.boite_mat(racine, Vector3(16, 6, 9), Vector3(-610, 3, -120), tuffeau)
+		Geo.toit(racine, 16.6, 9.6, 4.0, Vector3(-610, 6, -120), Tex.mat_ardoise(), true)
 	Geo.boite_mat(racine, Vector3(30, 9, 18), Vector3(-640, 4.5, -95), Tex.plaque("bardage", Tex.bardage(), 1.0, 1.0, Color(0.55, 0.3, 0.22)))
 	Geo.cylindre(racine, 3.0, 14.0, Vector3(-615, 7, -90), Color(0.8, 0.8, 0.8))
 	Geo.boite(racine, Vector3(6, 0.05, 70), Vector3(-612, 0.06, -60), Color(0.55, 0.5, 0.42), false)

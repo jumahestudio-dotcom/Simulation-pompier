@@ -6,6 +6,7 @@ extends RefCounted
 const Geo = preload("res://scripts/geo.gd")
 const Tex = preload("res://scripts/textures.gd")
 const Lot = preload("res://scripts/lot.gd")
+const Modeles = preload("res://scripts/modeles3d.gd")
 
 ## Commerces fictifs : [enseigne, couleur de devanture, couleur du store]
 const COMMERCES: Array = [
@@ -342,6 +343,9 @@ static func mobilier_centre(racine: Node3D, rng: RandomNumberGenerator) -> void:
 	_abribus(racine, Vector3(-130, 0, -10.5), 1.0)
 	_abribus(racine, Vector3(30, 0, 10.5), -1.0)
 	_abribus(racine, Vector3(200, 0, -10.5), 1.0)
+	# Poteaux incendie rouges (pack de mobilier) sur les trottoirs du boulevard
+	for ph in [Vector3(-40, 0, -12.8), Vector3(120, 0, 12.8), Vector3(260, 0, -12.8), Vector3(-160, 0, 12.8)]:
+		Modeles.poser(racine, Modeles.RUE, ph, 0.0, 1.0, Modeles.MOBILIER["poteau"], false)
 	# Colonne d'affichage
 	Lot.cylindre(0.75, 3.0, Vector3(41, 1.5, -11.5), vert)
 	Lot.cylindre(0.8, 2.2, Vector3(41, 1.7, -11.5), Lot.couleur(Color(0.9, 0.85, 0.7)))
@@ -355,10 +359,15 @@ static func mobilier_centre(racine: Node3D, rng: RandomNumberGenerator) -> void:
 			var r := rng.randf()
 			var p := Vector3(x + rng.randf_range(-3.0, 3.0), 0, zz)
 			if r < 0.4:
-				Lot.cylindre(0.05, 1.0, p + Vector3(0, 0.5, 0), vert)
-				Lot.cylindre(0.28, 0.6, p + Vector3(0, 0.8, 0), Lot.couleur(Color(0.2, 0.5, 0.3)))
+				if Modeles.poser(racine, Modeles.RUE, p, 0.0, 1.0, Modeles.MOBILIER["poubelle"], false) == null:
+					Lot.cylindre(0.05, 1.0, p + Vector3(0, 0.5, 0), vert)
+					Lot.cylindre(0.28, 0.6, p + Vector3(0, 0.8, 0), Lot.couleur(Color(0.2, 0.5, 0.3)))
 			elif r < 0.75:
-				_banc(p, 0.0 if zz < 0.0 else PI)
+				var mod: String = Modeles.MOBILIER["banc_bois"] if r < 0.6 else Modeles.MOBILIER["banc_metal"]
+				if Modeles.poser(racine, Modeles.RUE, p, (0.0 if zz < 0.0 else PI) + Modeles.BANC_ROT, 1.0, mod, false) == null:
+					_banc(p, 0.0 if zz < 0.0 else PI)
+			elif r < 0.82 and Modeles.present(Modeles.RUE):
+				Modeles.poser(racine, Modeles.RUE, p, 0.0, 1.0, Modeles.MOBILIER["jardiniere"], false)
 			else:
 				for k in 3:
 					var arc := Basis(Vector3.UP, PI * 0.5)

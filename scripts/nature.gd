@@ -6,6 +6,7 @@ extends RefCounted
 const Geo = preload("res://scripts/geo.gd")
 const Tex = preload("res://scripts/textures.gd")
 const Lot = preload("res://scripts/lot.gd")
+const Modeles = preload("res://scripts/modeles3d.gd")
 
 const BOIS := Color(0.48, 0.34, 0.2)
 const GRILLAGE := Color(0.22, 0.35, 0.25)
@@ -232,6 +233,8 @@ static func _square(racine: Node3D, rng: RandomNumberGenerator, r: Rect2) -> voi
 		Lot.boite_c(Vector3(10, 0.3, 6), ce + q + Vector3(0, 0.15, 0), Color(0.35, 0.25, 0.18))
 		for k in 12:
 			Lot.sphere(0.4, ce + q + Vector3(-4.2 + (k % 6) * 1.7, 0.4, -1.4 + int(k / 6) * 2.8), Lot.couleur(fleurs[k % 4]), 0.6)
+		# Massif végétal scanné au bout de chaque parterre
+		Modeles.poser(racine, Modeles.PLANTES, ce + q + Vector3(0, 0.25, 0), rng.randf() * TAU, 0.45, "Plants*#%d" % (9 + rng.randi() % 6), false)
 	# Bancs le long des allées et arbres
 	for k in 8:
 		var dx := -45.0 + k * 13.0
@@ -242,7 +245,9 @@ static func _square(racine: Node3D, rng: RandomNumberGenerator, r: Rect2) -> voi
 	for k in 22:
 		var p := ce + Vector3(rng.randf_range(-r.size.x * 0.45, r.size.x * 0.45), 0, rng.randf_range(-r.size.y * 0.45, r.size.y * 0.45))
 		if absf(p.x - ce.x) > 5.0 and absf(p.z - ce.z) > 5.0 and p.distance_to(ce) > 12.0 and p.distance_to(k0) > 8.0:
-			Lot.arbre_feuillu(p, rng.randf_range(0.9, 1.3), _feuillage(rng), Lot.couleur(Color(0.42, 0.33, 0.24)))
+			var arbre: String = "Tree 1" if k % 2 == 0 else "Tree 2"
+			if k % 3 == 0 or Modeles.poser(racine, Modeles.ARBRE, p, rng.randf() * TAU, rng.randf_range(1.0, 1.4), arbre, false) == null:
+				Lot.arbre_feuillu(p, rng.randf_range(0.9, 1.3), _feuillage(rng), Lot.couleur(Color(0.42, 0.33, 0.24)))
 	var t := Geo.texte(racine, "Square de la Mairie", ce + Vector3(0, 2.4, r.size.y * 0.5 + 0.1), 40, Color(0.95, 0.95, 0.9), false)
 	t.outline_size = 6
 

@@ -11,6 +11,7 @@ const Geo = preload("res://scripts/geo.gd")
 const Tex = preload("res://scripts/textures.gd")
 const Lot = preload("res://scripts/lot.gd")
 const VoitureModele = preload("res://scripts/voiture_modele.gd")
+const Modeles = preload("res://scripts/modeles3d.gd")
 
 const CLOISON := Color(0.9, 0.88, 0.82)
 const MARINE := Color(0.1, 0.13, 0.22)
@@ -437,10 +438,22 @@ static func _remise(racine: Node3D) -> void:
 		Lot.boite_c(Vector3(1.2, 0.01, 0.4), Vector3(-250.0, 0.125, float(z)), Color(0.95, 0.95, 0.9))
 	# Véhicule léger du chef de garde (rouge, gyrophares bleus sur le toit), garé à droite
 	var pos := Vector3(-222.0, 0, -21.5)
-	VoitureModele.garer(Lot, "break", Color(0.72, 0.06, 0.05), pos, Basis(Vector3.UP, PI))
-	Lot.boite_c(Vector3(1.1, 0.1, 0.25), pos + Vector3(0, 1.52, 0.2), Color(0.1, 0.1, 0.1))
+	var h_toit := 1.52
+	if Modeles.voiture(racine, "kodiaq", pos, PI, Color(0.72, 0.04, 0.03)) != null:
+		# VL sur la base du SUV fourni : rampe bleue sur le toit et inscriptions jaunes
+		h_toit = 1.72
+		for cote in [-1.0, 1.0]:
+			var tx := Geo.texte(racine, "SAPEURS-POMPIERS", pos + Vector3(cote * 0.97, 0.85, 0.3), 26, JAUNE, false)
+			tx.rotation.y = cote * PI * 0.5
+			tx.outline_size = 0
+			var ch := Geo.texte(racine, "CHEF DE GARDE", pos + Vector3(cote * 0.97, 0.68, 0.3), 20, JAUNE, false)
+			ch.rotation.y = cote * PI * 0.5
+			ch.outline_size = 0
+	else:
+		VoitureModele.garer(Lot, "break", Color(0.72, 0.06, 0.05), pos, Basis(Vector3.UP, PI))
+	Lot.boite_c(Vector3(1.1, 0.1, 0.25), pos + Vector3(0, h_toit, 0.2), Color(0.1, 0.1, 0.1))
 	for sx in [-0.4, 0.4]:
-		Lot.boite(Vector3(0.28, 0.1, 0.22), pos + Vector3(sx, 1.6, 0.2), Tex.emissif(Color(0.2, 0.35, 1.0), 0.8))
+		Lot.boite(Vector3(0.28, 0.1, 0.22), pos + Vector3(sx, h_toit + 0.08, 0.2), Tex.emissif(Color(0.2, 0.35, 1.0), 0.8))
 	var corps := StaticBody3D.new()
 	corps.position = pos + Vector3(0, 0.75, 0)
 	racine.add_child(corps)
@@ -553,7 +566,9 @@ static func _parking_personnel(racine: Node3D) -> void:
 			continue
 		var pos := Vector3(-211.6, 0, z + 1.35)
 		var c: Color = couleurs[n % couleurs.size()]
-		VoitureModele.garer(Lot, VoitureModele.TYPES[(n * 3) % VoitureModele.TYPES.size()], c, pos, Basis(Vector3.UP, PI * 0.5 if n % 2 == 0 else -PI * 0.5))
+		var ang := PI * 0.5 if n % 2 == 0 else -PI * 0.5
+		if n % 5 != 1 or Modeles.voiture(racine, "octavia", pos, ang, c) == null:
+			VoitureModele.garer(Lot, VoitureModele.TYPES[(n * 3) % VoitureModele.TYPES.size()], c, pos, Basis(Vector3.UP, ang))
 		var corps := StaticBody3D.new()
 		corps.position = pos + Vector3(0, 0.75, 0)
 		racine.add_child(corps)
@@ -565,6 +580,10 @@ static func _parking_personnel(racine: Node3D) -> void:
 		n += 1
 	_ecriteau(racine, "PARKING DU PERSONNEL", Vector3(-211.6, 2.4, -14.5), 0.0, Color(0.1, 0.3, 0.6))
 	Lot.boite_c(Vector3(0.08, 2.3, 0.08), Vector3(-211.6, 1.15, -14.6), METAL)
+	# Poteau incendie accidenté (modèle scanné) dans la cour de manœuvre, pour l'entraînement
+	Modeles.poser(racine, Modeles.POTEAU, Vector3(-226.0, 0, -80.0), 0.0, 0.075, "", false)
+	# Poteau incendie devant la caserne
+	Modeles.poser(racine, Modeles.RUE, Vector3(-292.0, 0, -11.0), 0.0, 1.0, Modeles.MOBILIER["poteau"], false)
 	# Mât avec le drapeau français à l'entrée
 	Lot.cylindre(0.05, 8.0, Vector3(-288.0, 4.0, -12.0), Geo.mat(Color(0.9, 0.9, 0.9)))
 	var drapeau: Array = [Color(0.0, 0.14, 0.58), Color(0.97, 0.97, 0.97), Color(0.93, 0.16, 0.22)]

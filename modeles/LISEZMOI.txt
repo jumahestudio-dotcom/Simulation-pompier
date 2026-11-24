@@ -13,3 +13,10 @@ Utilisés aujourd'hui :
   fd0fcff7053d4d9f8829320a30d7087e.glb   immeuble de bureaux, ZA des Ormeaux
   simple_industrial_storage_tank.glb     cuves de l'usine, ZA des Ormeaux
   propane_and_gas_tanks_set_-_game_ready.glb   stock de gaz de l'usine
+  skoda_kodiaq_2024.glb                  VL du chef de garde (rouge, sans logo ni plaque)
+  skoda_octavia_combi_2024.glb           voitures du parking du personnel (sans logo)
+  street_objects_pack_1_revamped.glb     bancs, poubelles, jardinières, poteaux incendie
+  damaged_firehydrant.glb                poteau incendie accidenté près de la caserne
+  tree_low_poly_lowpoly.glb              arbres du square de la Mairie
+  scanned_plants_and_grass_free_download.glb   massifs du square
+  tramain_house_1_france.glb             maison de la ferme, à la campagne
