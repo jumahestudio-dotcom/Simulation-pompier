@@ -112,6 +112,26 @@ func _jouer(id: String) -> void:
 		await _feu()
 	else:
 		await _sap()
+		if not await _attendre_etat("hopital", 400.0):
+			print("ÉCHEC : jamais arrivé aux urgences (", main.etat, ")")
+			resultats.append(id + " : ÉCHEC urgences")
+			return
+		main.joueur.teleporter(main.infirmiere.global_position + Vector3(0, 0.2, -1.2), 0.0)
+		await get_tree().process_frame
+		await get_tree().process_frame
+		if main._proche == null or main._proche["id"] != "iao":
+			print("ÉCHEC : pas de proposition de transmission à l'IAO (", main._proche, ")")
+		main._transmettre_iao()
+		main._remonter_hopital()
+	if not await _attendre_etat("reconditionnement", 600.0):
+		print("ÉCHEC : jamais rentré (", main.etat, ")")
+		resultats.append(id + " : ÉCHEC retour")
+		return
+	var deroule: String = main.hud._deroule.text
+	if deroule.contains("oublié"):
+		print("Déroulé avec étapes oubliées :\n", deroule)
+		resultats.append(id + " : ÉCHEC déroulé (étape oubliée)")
+	main._reconditionner()
 	if not await _attendre_etat("fin", 600.0):
 		print("ÉCHEC : pas de fin (", main.etat, ")")
 		resultats.append(id + " : ÉCHEC fin")
@@ -125,8 +145,17 @@ func _jouer(id: String) -> void:
 
 func _sap() -> void:
 	var v = main.victime
+	# Sans le sac, le chef refuse les gestes.
 	main.joueur.teleporter(v.global_position + Vector3(1.0, 0.2, 0.0), 0.0)
 	await get_tree().process_frame
+	main._geste(1)
+	if v.bilan_fait:
+		print("ÉCHEC : bilan possible sans le sac")
+	main.mission["penalites"].clear()
+	main._prendre_sac()
+	main._ecouter_temoin()
+	if not main.mission["temoin"]:
+		print("ÉCHEC : pas de témoin")
 	main._parler_victime()
 	main._geste(1)
 	var correspondance := {"oxygene": 2, "pls": 3, "immobilisation": 4, "couverture": 5}

@@ -32,6 +32,7 @@ Si quelque chose ne marche pas, faites une capture d'écran (de la fenêtre du j
 | Clic gauche (maintenu) | Arroser, quand la lance est en main |
 | 1 à 7 | Gestes de secours près d'une victime |
 | T (maintenu) | Accélérer un trajet |
+| F1 | Afficher ou masquer le déroulé de l'intervention et la balise jaune |
 | N | Faire sonner le prochain appel tout de suite |
 | F2 | Tirage des appels : équilibré ou réaliste |
 | Échap | Libérer la souris |
@@ -46,6 +47,13 @@ Si quelque chose ne marche pas, faites une capture d'écran (de la fenêtre du j
   - **Malaise à domicile** (diabétique, cardiaque, personne âgée au sol) ;
   - **Malaise ou blessé sur la voie publique** (ivresse, épilepsie, chute de trottinette) ;
   - **Feu d'appartement au 2e étage** (fumée, cage d'escalier enfumée, victime à la fenêtre).
+- **Première intervention guidée** : à la toute première garde, l'alarme sonne au bout de 20 secondes pour un
+  malaise à domicile. À gauche de l'écran, le **déroulé** coche chaque étape (▶ = ce qu'il faut faire maintenant,
+  ✗ = étape oubliée) et une **balise jaune** flotte au-dessus de l'endroit où aller, avec la distance.
+  Sur place : prendre le **sac de secours** (porte latérale du VSAV), **écouter le témoin** (la fille, la voisine,
+  le passant…), faire le bilan et les gestes, transmettre au médecin, brancarder, **monter dans la cellule**,
+  **transmettre la victime à l'infirmière d'accueil** des urgences, rentrer et **reconditionner l'engin**
+  (oxygène, draps, sac) avant de repasser disponible. Le compte rendu donne la **chronologie des statuts**.
 - **Déroulé d'une intervention** : alarme et ticket de départ, habillage, départ (délai mesuré), trajet,
   statuts radio, travail sur place, transport à l'hôpital, retour, **note sur 20** et expérience.
 - **Victimes** : 4 fonctions suivies (conscience, ventilation, circulation, température), pas de barre de vie :
@@ -65,6 +73,8 @@ départs réflexes, grades et casernes fictives. Le jeu lit ce fichier pour tire
 - `scripts/main.gd` : déroulé de la garde et des interventions.
 - `scripts/monde.gd` : construction du quartier. `scripts/carte.gd` : plan des rues et calcul d'itinéraire.
 - `scripts/victime.gd`, `scripts/feu.gd`, `scripts/engin.gd`, `scripts/trafic.gd`, `scripts/collegue.gd`, `scripts/hud.gd`.
+- `scripts/guide.gd` (balise d'objectif), `scripts/temoin.gd` (témoin sur place, infirmière d'accueil).
 - Test automatique des trois scénarios : `godot --headless --path . res://tests/test_auto.tscn`
+- Captures d'une intervention guidée : `godot --path . res://tests/capture_intervention.tscn -- <dossier>`
 
 Tout est original : aucun fichier ni contenu d'un jeu existant n'est utilisé.
