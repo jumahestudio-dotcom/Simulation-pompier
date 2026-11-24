@@ -29,6 +29,16 @@ func construire(couleur: Color, n: int = 0) -> void:
 			and Modeles.voiture_trafic(self, modeles[(n + 1) % modeles.size()], couleur) == null:
 		var types: Array = VoitureModele.TYPES
 		VoitureModele.instancier(self, types[absi(hash(couleur) + get_instance_id()) % types.size()], couleur)
+	# Carrosserie solide : le joueur ne peut plus traverser la voiture.
+	var corps := AnimatableBody3D.new()
+	corps.sync_to_physics = false
+	var cs := CollisionShape3D.new()
+	var forme := BoxShape3D.new()
+	forme.size = Vector3(1.85, 1.5, 4.3)
+	cs.shape = forme
+	cs.position = Vector3(0, 0.75, 0)
+	corps.add_child(cs)
+	add_child(corps)
 	_orienter()
 
 
@@ -77,6 +87,13 @@ func _process(delta: float) -> void:
 				v_cible = 0.0
 			elif not e.en_route and dx > 0.0 and dx < 14.0 and absf(absf(ecart) - (voie + _decalage)) < 2.0:
 				# Engin arrêté devant sur notre voie : on attend.
+				v_cible = 0.0
+		# Un piéton (le joueur) devant la voiture, sur sa voie : elle freine et s'arrête.
+		var j = monde.joueur
+		if j != null and j.visible:
+			var jp: Vector3 = j.global_position
+			var devant: float = (_le_long(jp) - _a) * sens
+			if devant > 0.0 and devant < 11.0 and absf(_travers(jp) - _travers(global_position)) < 1.9 and jp.y < 2.0:
 				v_cible = 0.0
 		for c in monde.voitures:
 			if c == self or c.sens != sens or c.axe_z != axe_z or c.ligne != ligne:

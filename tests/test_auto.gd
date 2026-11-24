@@ -11,7 +11,10 @@ func _ready() -> void:
 	main = load("res://scenes/main.tscn").instantiate()
 	add_child(main)
 	main.vitesse_test = 8.0
+	main.prochain_appel = 99999.0   # pas d'appel pendant les premiers tests
 	await get_tree().create_timer(1.0).timeout
+	await _test_navigation()
+	await _test_voiture()
 	await _test_portes_vsav()
 	await _test_fpt()
 	for id in ["malaise_domicile", "malaise_voie_publique", "feu_appartement"]:
@@ -21,6 +24,46 @@ func _ready() -> void:
 	for r in resultats:
 		print(r)
 	get_tree().quit()
+
+
+## Un collègue va de la salle de garde à la remise, puis jusqu'à la victime dans la maison,
+## sans traverser de mur (rayon entre deux positions successives).
+func _test_navigation() -> void:
+	var c = main.equipages["VSAV"][0]
+	var traversees := 0
+	for but in [main.vsav.global_position + Vector3(1.5, 0, -6.0), Vector3(265, 0.05, -91.0)]:
+		if but.x > 0:
+			c.teleporter(Vector3(250, 0, -78))   # sur le trottoir devant la maison
+		c.aller(but)
+		var avant: Vector3 = c.global_position
+		var t := 0.0
+		while c._en_mouvement and t < 90.0:
+			await get_tree().create_timer(0.1).timeout
+			t += 0.1
+			var p: Vector3 = c.global_position
+			var q := PhysicsRayQueryParameters3D.create(avant + Vector3(0, 1.0, 0), p + Vector3(0, 1.0, 0))
+			if not main.get_world_3d().direct_space_state.intersect_ray(q).is_empty():
+				traversees += 1
+			avant = p
+		var arrive: bool = c.global_position.distance_to(but) < 1.5
+		print("Navigation vers ", but, " : arrivé ", arrive, ", murs traversés ", traversees)
+		if not arrive:
+			traversees += 100
+	c.teleporter(c.get_meta("pos_caserne"))
+	resultats.append("navigation collègues : " + ("OK" if traversees == 0 else "ÉCHEC (%d)" % traversees))
+
+
+## Le joueur se plante sur le boulevard devant une voiture : elle doit s'arrêter avant lui.
+func _test_voiture() -> void:
+	var v = main.voitures[0]
+	var j = main.joueur
+	var devant: Vector3 = v.global_position + (Vector3(v.sens * 25.0, 0, 0))
+	j.teleporter(Vector3(devant.x, 0.2, v.global_position.z), 0.0)
+	await get_tree().create_timer(4.0).timeout
+	var ecart: float = absf(v.global_position.x - j.global_position.x)
+	print("Voiture arrêtée devant le joueur : écart ", snappedf(ecart, 0.1), " m, vitesse ", snappedf(v.vitesse, 0.1))
+	resultats.append("voiture devant le joueur : " + ("OK" if ecart > 1.5 and v.vitesse < 0.5 else "ÉCHEC"))
+	j.teleporter(Vector3(-250, 0.2, -22), 0.0)
 
 
 ## Ouvre les portes arrière par l'interaction, monte dans la cellule, ressort, referme.
@@ -112,6 +155,26 @@ func _jouer(id: String) -> void:
 		await _feu()
 	else:
 		await _sap()
+		if not await _attendre_etat("hopital", 400.0):
+			print("ÉCHEC : jamais arrivé aux urgences (", main.etat, ")")
+			resultats.append(id + " : ÉCHEC urgences")
+			return
+		main.joueur.teleporter(main.infirmiere.global_position + Vector3(0, 0.2, -1.2), 0.0)
+		await get_tree().process_frame
+		await get_tree().process_frame
+		if main._proche == null or main._proche["id"] != "iao":
+			print("ÉCHEC : pas de proposition de transmission à l'IAO (", main._proche, ")")
+		main._transmettre_iao()
+		main._remonter_hopital()
+	if not await _attendre_etat("reconditionnement", 600.0):
+		print("ÉCHEC : jamais rentré (", main.etat, ")")
+		resultats.append(id + " : ÉCHEC retour")
+		return
+	var deroule: String = main.hud._deroule.text
+	if deroule.contains("oublié"):
+		print("Déroulé avec étapes oubliées :\n", deroule)
+		resultats.append(id + " : ÉCHEC déroulé (étape oubliée)")
+	main._reconditionner()
 	if not await _attendre_etat("fin", 600.0):
 		print("ÉCHEC : pas de fin (", main.etat, ")")
 		resultats.append(id + " : ÉCHEC fin")
@@ -125,8 +188,17 @@ func _jouer(id: String) -> void:
 
 func _sap() -> void:
 	var v = main.victime
+	# Sans le sac, le chef refuse les gestes.
 	main.joueur.teleporter(v.global_position + Vector3(1.0, 0.2, 0.0), 0.0)
 	await get_tree().process_frame
+	main._geste(1)
+	if v.bilan_fait:
+		print("ÉCHEC : bilan possible sans le sac")
+	main.mission["penalites"].clear()
+	main._prendre_sac()
+	main._ecouter_temoin()
+	if not main.mission["temoin"]:
+		print("ÉCHEC : pas de témoin")
 	main._parler_victime()
 	main._geste(1)
 	var correspondance := {"oxygene": 2, "pls": 3, "immobilisation": 4, "couverture": 5}

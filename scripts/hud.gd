@@ -10,6 +10,8 @@ var _victime_boite: PanelContainer
 var _victime: RichTextLabel
 var _fin_boite: PanelContainer
 var _fin: RichTextLabel
+var _deroule_boite: PanelContainer
+var _deroule: RichTextLabel
 var _aide: Label
 var _viseur: Label
 var _voile: ColorRect
@@ -31,6 +33,14 @@ func _ready() -> void:
 	var b := _boite(racine)
 	_placer(b, 0.0, 0.0, 16, 16, 430)
 	_etat = _texte(b)
+
+	# Déroulé de l'intervention : les étapes, cochées au fur et à mesure (F1 pour masquer)
+	_deroule_boite = _boite(racine)
+	_placer(_deroule_boite, 0.0, 0.0, 16, 190, 400)
+	_deroule = _texte(_deroule_boite)
+	_deroule.add_theme_font_size_override("normal_font_size", 15)
+	_deroule.add_theme_font_size_override("bold_font_size", 15)
+	_deroule_boite.visible = false
 
 	_ticket_boite = _boite(racine)
 	_placer(_ticket_boite, 0.5, 0.0, -310, 16, 620)
@@ -78,7 +88,7 @@ func _ready() -> void:
 	_aide.add_theme_color_override("font_color", Color(1, 1, 1, 0.75))
 	_aide.add_theme_color_override("font_outline_color", Color.BLACK)
 	_aide.add_theme_constant_override("outline_size", 4)
-	_aide.text = "Z Q S D (ou W A S D) : marcher · Maj : courir · Souris : regarder\nE : interagir · Clic gauche : arroser (lance en main)\n1 à 7 : gestes de secours près d'une victime\nT (maintenu) : accélérer un trajet · C : changer de vue en route · N : appel suivant\nF2 : tirage équilibré / réaliste · Échap : libérer la souris"
+	_aide.text = "Z Q S D (ou W A S D) : marcher · Maj : courir · Souris : regarder\nE : interagir · Clic gauche : arroser (lance en main)\n1 à 7 : gestes de secours près d'une victime\nT (maintenu) : accélérer un trajet · C : changer de vue en route · N : appel suivant\nF1 : afficher / masquer le déroulé · F2 : tirage équilibré / réaliste · Échap : libérer la souris"
 	_aide.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	racine.add_child(_aide)
 
@@ -131,6 +141,12 @@ func radio(qui: String, message: String, couleur: String = "#9fd3ff") -> void:
 	while _lignes_radio.size() > 7:
 		_lignes_radio.pop_front()
 	_radio.text = "\n".join(PackedStringArray(_lignes_radio))
+
+
+## Déroulé de l'intervention (vide = caché).
+func set_deroule(bbcode: String) -> void:
+	_deroule_boite.visible = bbcode != ""
+	_deroule.text = bbcode
 
 
 func afficher_ticket(bbcode: String) -> void:

@@ -16,6 +16,8 @@ const Hud = preload("res://scripts/hud.gd")
 const VsavModele = preload("res://scripts/vsav_modele.gd")
 const Collegue = preload("res://scripts/collegue.gd")
 const Son = preload("res://scripts/son.gd")
+const Guide = preload("res://scripts/guide.gd")
+const Temoin = preload("res://scripts/temoin.gd")
 
 ## Les trois scénarios du prototype. Les natures, poids et variantes viennent du référentiel.
 const SCENARIOS: Dictionary = {
@@ -38,6 +40,19 @@ const APPELS: Dictionary = {
 	"cage_escalier_enfumee": ["M", 30, 80, "Une habitante : « L'escalier est plein de fumée, on ne peut plus descendre ! »"],
 	"victime_a_la_fenetre": ["F", 30, 80, "Un passant : « Quelqu'un appelle au secours à la fenêtre du 2e, il y a de la fumée ! »"],
 }
+
+## Ce que dit le témoin sur place (rôle affiché, puis ses paroles) selon la variante.
+const TEMOINS: Dictionary = {
+	"diabetique": ["Fille de la victime", "F", 45, "C'est ma mère. Elle est diabétique, sous insuline. Elle a fait sa piqûre ce matin mais elle n'a presque rien mangé. Je l'ai trouvée comme ça il y a dix minutes, elle ne me répond plus."],
+	"cardiaque": ["Épouse de la victime", "F", 50, "Ça l'a pris il y a une demi-heure, en montant l'escalier. Il fume, il a de la tension, il prend un cachet pour le cœur. Il est tout gris, j'ai peur."],
+	"personne_agee_seule": ["Voisine (requérante)", "F", 60, "Je l'ai entendue appeler ce matin. Elle vit seule, elle a dû tomber cette nuit en allant aux toilettes. Elle prend des médicaments pour la tension, la boîte est sur la table."],
+	"ivresse": ["Passant (requérant)", "M", 40, "Il est là depuis une heure environ, il a bu avec des copains. Il a crié sur les gens qui voulaient l'aider, faites attention."],
+	"epilepsie": ["Passante (requérante)", "F", 30, "Il est tombé d'un coup et il a tremblé de partout, deux minutes peut-être. Il ne s'est pas cogné la tête je crois. Je n'ai rien mis dans sa bouche."],
+	"chute_trottinette": ["Témoin de la chute", "M", 35, "Il roulait vite, il a pris la bordure du trottoir. Il s'est cogné la tête, il n'avait pas de casque. Il n'a pas perdu connaissance."],
+}
+
+## Ordre des étapes d'une intervention (pour savoir si une étape est passée).
+const RANGS: Dictionary = {"caserne": -1, "depart": 0, "trajet": 1, "sur_place": 2, "transport": 3, "hopital": 4, "retour": 5, "reconditionnement": 6, "fin": 7}
 
 const NOMS_VICTIMES: Array = ["Martin", "Bernard", "Dubois", "Durand", "Leroy", "Fournier", "Girardin", "Bonnet", "Lambertin", "Fontaine", "Chevalier", "Rousseau", "Blanc", "Garnier", "Faure"]
 
@@ -77,6 +92,13 @@ var _t_alimentation := 0.0
 var _alimentation := false
 var _dans_batiment := false
 var _drapeaux: Dictionary = {}   # messages déjà dits (pour ne pas répéter)
+var guide                        # balise d'objectif (guide.gd)
+var guide_visible := true        # F1 : affiche ou masque le déroulé et la balise
+var temoin = null                # requérant sur les lieux
+var infirmiere = null            # infirmière d'accueil des urgences
+var brancard: Node3D             # brancard (sorti du VSAV aux urgences)
+var premiere_intervention := ""  # scénario imposé pour la toute première garde (intervention guidée)
+var _chrono: Array = []          # [heure, statut] pour le compte rendu
 
 
 func _ready() -> void:
@@ -84,6 +106,7 @@ func _ready() -> void:
 	_entrees()
 	_environnement()
 	Monde.construire(self)
+	_naviguer()
 	feu = Feu.new()
 	add_child(feu)
 	feu.preparer()
@@ -136,9 +159,17 @@ func _ready() -> void:
 	_charger_referentiel()
 	_charger_carriere()
 	_interactions_fixes()
+	guide = Guide.new()
+	add_child(guide)
+	_creer_urgences()
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	hud.radio("Adjudant Girard (chef de garde)", "Bienvenue au centre de secours de Joué-lès-Tours. Tu es de garde comme équipier. Reste prêt, ça peut sonner à tout moment.", "#ffd27f")
-	hud.radio("Conseil", "Promenez-vous dans la remise. Quand l'alarme sonne : vestiaire (E), puis montez dans l'engin indiqué sur le ticket.", "#b0ffb0")
+	if int(carriere.get("interventions", 0)) == 0:
+		# Toute première garde : un malaise à domicile, intervention guidée pas à pas.
+		premiere_intervention = "malaise_domicile"
+		prochain_appel = 20.0
+		hud.radio("Adjudant Girard (chef de garde)", "Pour ta première garde, tu pars au VSAV avec Lambert et Diallo. Suis le déroulé à gauche de l'écran et la balise jaune : elle t'indique où aller.", "#ffd27f")
+	hud.radio("Conseil", "Promenez-vous dans la remise. Quand l'alarme sonne : vestiaire (E), puis montez dans l'engin indiqué sur le ticket. F1 : afficher ou masquer le déroulé.", "#b0ffb0")
 
 
 # ---------------------------------------------------------------------------
@@ -168,6 +199,7 @@ func _entrees() -> void:
 	_action("tirage", [KEY_F2])
 	_action("souris", [KEY_ESCAPE])
 	_action("camera", [KEY_C])
+	_action("aide", [KEY_F1])
 	var chiffres: Array = [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7]
 	for i in chiffres.size():
 		_action("geste_%d" % (i + 1), [chiffres[i], KEY_KP_1 + i])
@@ -276,6 +308,37 @@ void sky() {
 	return m
 
 
+## Zones où les collègues trouvent leur chemin en contournant les murs (portes, couloirs) :
+## la caserne et les lieux d'intervention. Le maillage de navigation est calculé au
+## démarrage à partir des murs et obstacles solides (avant d'ajouter les engins).
+const ZONES_NAVIGATION: Array = [
+	AABB(Vector3(-345, -1, -125), Vector3(195, 6, 150)),   # caserne et boulevard devant
+	AABB(Vector3(225, -1, -125), Vector3(75, 6, 70)),      # maison du malaise (rue des Tanneurs)
+	AABB(Vector3(125, -1, -25), Vector3(80, 6, 55)),       # boulevard, malaise sur la voie publique
+	AABB(Vector3(-80, -1, -125), Vector3(75, 5, 70)),      # pied de l'immeuble du feu
+	AABB(Vector3(140, -1, 222), Vector3(90, 6, 50)),       # entrée des urgences
+]
+
+
+func _naviguer() -> void:
+	var source := NavigationMeshSourceGeometryData3D.new()
+	var modele := NavigationMesh.new()
+	modele.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
+	NavigationServer3D.parse_source_geometry_data(modele, source, self)
+	for zone in ZONES_NAVIGATION:
+		var nm := NavigationMesh.new()
+		nm.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
+		nm.agent_radius = 0.25
+		nm.agent_height = 1.75
+		nm.agent_max_climb = 0.25
+		nm.agent_max_slope = 40.0
+		nm.filter_baking_aabb = zone
+		NavigationServer3D.bake_from_source_geometry_data(nm, source)
+		var region := NavigationRegion3D.new()
+		region.navigation_mesh = nm
+		add_child(region)
+
+
 func _charger_referentiel() -> void:
 	var txt := FileAccess.get_file_as_string("res://data/referentiel_pompiers.json")
 	var data = JSON.parse_string(txt)
@@ -354,6 +417,9 @@ func _chercher_interaction() -> void:
 		if d <= it["rayon"] and d < meilleur:
 			meilleur = d
 			_proche = it
+	# Les gestes de l'intervention passent avant les portes des engins.
+	if _proche != null:
+		return
 	for it in _interactions_engins():
 		var d2: float = p.distance_to(it["pos"])
 		if d2 <= it["rayon"] and d2 < meilleur:
@@ -460,6 +526,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("appel_suivant"):
 		if etat == "caserne":
 			prochain_appel = 0.0
+	elif event.is_action_pressed("aide"):
+		guide_visible = not guide_visible
+		hud.radio("Réglage", "Déroulé et balise d'objectif : " + ("affichés" if guide_visible else "masqués") + " (F1).", "#b0ffb0")
 	elif event.is_action_pressed("tirage"):
 		tirage_realiste = not tirage_realiste
 		hud.radio("Réglage", "Tirage des appels : " + ("réaliste (proportions nationales 2024 : surtout du secours à victime)" if tirage_realiste else "équilibré (un tiers chaque scénario)"), "#b0ffb0")
@@ -501,6 +570,7 @@ func _process(delta: float) -> void:
 			_sur_place_process(delta)
 	_maj_victime_hud()
 	_maj_etat_hud()
+	_maj_deroule()
 
 
 func _maj_etat_hud() -> void:
@@ -532,6 +602,7 @@ func _maj_etat_hud() -> void:
 
 func _set_statut(s: String, engin_code: String) -> void:
 	statut = s
+	_chrono.append([heure, s])
 	var libelle := {"parti": "parti", "sur_les_lieux": "sur les lieux", "transport_hopital": "transport vers le centre hospitalier", "arrive_hopital": "arrivé au centre hospitalier", "retour": "retour au centre", "disponible": "disponible au centre"}
 	hud.radio(engin_code + " Joué", "Statut : " + str(libelle.get(s, s)) + ".", "#ffb347")
 
@@ -561,6 +632,10 @@ func _tirer_scenario() -> String:
 	var ids: Array = SCENARIOS.keys()
 	if force_scenario != "":
 		return force_scenario
+	if premiere_intervention != "":
+		var p := premiere_intervention
+		premiere_intervention = ""
+		return p
 	if not tirage_realiste:
 		return ids.pick_random()
 	# Poids = part de la catégorie x poids du sous-type x modulateur de nuit.
@@ -600,7 +675,10 @@ func _declencher_appel() -> void:
 		"id": id, "sc": sc, "st": st, "variante": variante, "debut": heure,
 		"penalites": [], "bons_points": [], "engin": vsav if sc["engin"] == "VSAV" else fpt,
 		"victime_sauvee": false, "pieces_brulees": {},
+		"sac": false, "temoin": false, "iao": false, "recond": false,
+		"ari": false, "lance": false, "monte": false,
 	}
+	_chrono = [[heure, "appel"]]
 	_drapeaux.clear()
 	_alimentation = false
 	_t_alimentation = 0.0
@@ -823,10 +901,65 @@ func _sur_place() -> void:
 	if victime.agitee:
 		_chef_dit("Attention, la victime a l'air agitée. On reste calme, on se présente et on parle doucement.")
 	if chef.trait_caractere == "pedagogue":
-		_chef_dit("Prends le sac de secours. Commence par le bilan (touche 1), puis fais les gestes adaptés. Je te regarde faire.")
+		_chef_dit("Prends le sac de secours par la porte latérale. Écoute le témoin, puis commence par le bilan (touche 1) et fais les gestes adaptés. Je te regarde faire.")
 	else:
-		_chef_dit("Allez, on se bouge : sac, bilan, gestes. Et pas de bêtise.")
+		_chef_dit("Allez, on se bouge : sac, témoin, bilan, gestes. Et pas de bêtise.")
 	ajouter_interaction("victime", victime.global_position + Vector3(0, 1, 0), 3.0, "Parler à la victime", _parler_victime)
+	ajouter_interaction("sac", _pos_sac(), 1.6, "Prendre le sac de secours", _prendre_sac)
+	_creer_temoin()
+
+
+## Point où l'on attrape le sac de secours : devant la porte latérale du VSAV.
+func _pos_sac() -> Vector3:
+	var e = mission["engin"]
+	if e.portes.has("laterale"):
+		return e.to_global(e.portes["laterale"]["point"] + Vector3(0.6, 0, 0))
+	return e.global_position + e.droite() * 1.8 + Vector3(0, 1, 0)
+
+
+func _prendre_sac() -> void:
+	var e = mission["engin"]
+	e.ouvrir_porte("laterale")
+	mission["sac"] = true
+	retirer_interaction("sac")
+	hud.radio("Vous", "Sac de secours pris : tensiomètre, oxymètre, lecteur de glycémie, bouteille d'oxygène, couverture.", "#dddddd")
+	get_tree().create_timer(1.5).timeout.connect(func():
+		if is_instance_valid(e) and not e.en_route:
+			e.ouvrir_porte("laterale", false))
+
+
+## Le requérant attend les secours près de la victime et donne les circonstances.
+func _creer_temoin() -> void:
+	_supprimer_temoin()
+	var info: Array = TEMOINS.get(mission.get("variante", ""), [])
+	if info.is_empty() or victime == null:
+		return
+	temoin = Temoin.new()
+	add_child(temoin)
+	temoin.construire(info[0], info[1], int(info[2]) + randi_range(-5, 8), randi())
+	var pos: Vector3 = victime.global_position + Vector3(-1.6, 0, 1.4)
+	if mission["id"] == "malaise_domicile":
+		pos = Vector3(261.0, 0.12, -89.6)   # juste derrière la porte d'entrée de la maison
+	temoin.global_position = Vector3(pos.x, maxf(pos.y, 0.05), pos.z)
+	temoin.regarder(joueur)
+	ajouter_interaction("temoin", temoin.global_position + Vector3(0, 1, 0), 2.6, "Écouter le témoin (" + str(info[0]).to_lower() + ")", _ecouter_temoin)
+
+
+func _ecouter_temoin() -> void:
+	var info: Array = TEMOINS.get(mission.get("variante", ""), [])
+	if info.is_empty():
+		return
+	hud.radio(str(info[0]), "« " + str(info[3]) + " »", "#9fd3ff")
+	if not mission["temoin"]:
+		mission["temoin"] = true
+		_bien("Témoin interrogé : circonstances et antécédents connus")
+
+
+func _supprimer_temoin() -> void:
+	retirer_interaction("temoin")
+	if temoin != null and is_instance_valid(temoin):
+		temoin.queue_free()
+	temoin = null
 
 
 func _parler_victime() -> void:
@@ -856,6 +989,13 @@ func _geste(i: int) -> void:
 		hud.set_invite("Approchez-vous de la victime pour faire un geste.")
 		return
 	var g: String = Victime.GESTES[i - 1]
+	if not mission.get("sac", true) and g != "transmettre" and g != "brancard":
+		if not _drapeaux.has("sans_sac"):
+			_drapeaux["sans_sac"] = true
+			_faute(1, "Arrivé auprès de la victime sans le sac de secours", "Et le matériel ? Le sac est dans le VSAV, porte latérale.")
+		else:
+			_chef_dit("Sans le sac, tu n'as ni tensiomètre ni oxygène. Va le chercher au VSAV, porte latérale.")
+		return
 	var res: Dictionary = victime.geste(g)
 	hud.radio("Vous", str(res["message"]), "#dddddd")
 	if int(res["penalite"]) > 0:
@@ -874,7 +1014,10 @@ func _geste(i: int) -> void:
 		e.ouvrir_porte("arriere_gauche")
 		e.ouvrir_porte("arriere_droite")
 		e.victime_a_bord(true)
-		ajouter_interaction("transport", e.global_position + Vector3(0, 1.5, 0), 6.0, "Monter dans le VSAV (transport)", _partir_hopital)
+		ajouter_interaction("transport", _pos_arriere(e), 2.6, "Monter dans la cellule avec la victime (transport)", _partir_hopital)
+		var cond = equipages["VSAV"][1]
+		cond.aller(e.global_position + e.droite() * 1.6 + e.avant() * 1.0)
+		_chef().aller(e.global_position - e.avant() * (e.longueur * 0.5 + 1.6) + e.droite() * 1.0)
 
 
 ## Le chef d'agrès donne des conseils si le joueur est bloqué. L'IA tient compte de son caractère.
@@ -905,8 +1048,15 @@ func _sur_place_process(delta: float) -> void:
 			_chef_dit("Un conseil : " + conseil)
 
 
+## Derrière l'engin, devant les portes arrière.
+func _pos_arriere(e) -> Vector3:
+	return e.global_position - e.avant() * (e.longueur * 0.5 + 1.0) + Vector3(0, 1.0, 0)
+
+
 func _partir_hopital() -> void:
 	retirer_interaction("transport")
+	_supprimer_temoin()
+	e_fermer(mission["engin"])
 	etat = "transport"
 	var e = mission["engin"]
 	joueur.activer(false)
@@ -919,12 +1069,81 @@ func _partir_hopital() -> void:
 	_connecter(e, "hopital")
 
 
+func e_fermer(e) -> void:
+	if e != null and e.has_method("fermer_portes"):
+		e.fermer_portes()
+
+
+## Aux urgences : on sort la victime sur le brancard et on la transmet à l'infirmière d'accueil.
 func _a_l_hopital() -> void:
 	var e = mission["engin"]
+	etat = "hopital"
+	e.set_sirene(false)
 	_set_statut("arrive_hopital", e.code)
 	e.victime_a_bord(false)
-	hud.radio("Infirmière d'accueil", "On la prend en salle 3. Merci les pompiers.", "#c89bff")
+	e.ouvrir_porte("arriere_gauche")
+	e.ouvrir_porte("arriere_droite")
+	var arr: Vector3 = e.global_position - e.avant() * (e.longueur * 0.5 + 2.2)
+	brancard.global_position = Vector3(arr.x, 0.0, arr.z)
+	brancard.rotation.y = e.rotation.y
+	brancard.visible = true
+	if victime != null:
+		victime.visible = true
+		victime.global_position = brancard.global_position + Vector3(0, 0.78, 0)
+		victime.rotation.y = e.rotation.y + PI
+	var eq: Array = _equipage(e)
+	for i in eq.size():
+		eq[i].visible = true
+		eq[i].teleporter(brancard.global_position + e.droite() * (1.0 if i == 0 else -1.0))
+	joueur.teleporter(arr - e.avant() * 1.6 + e.droite() * 1.2, e.rotation.y)
+	joueur.activer(true)
+	infirmiere.visible = true
+	_chef_dit("On y est. Va transmettre la victime à l'infirmière d'accueil, à l'entrée des urgences.")
+	ajouter_interaction("iao", infirmiere.global_position + Vector3(0, 1, 0), 2.6, "Transmettre la victime à l'infirmière d'accueil", _transmettre_iao)
+
+
+func _transmettre_iao() -> void:
+	retirer_interaction("iao")
+	mission["iao"] = true
+	var e = mission["engin"]
+	if victime != null:
+		hud.radio("Vous", "Transmission : " + victime.texte_bilan_radio(), "#dddddd")
+		victime.visible = false
+	hud.radio("Infirmière d'accueil", "Merci, je la prends en box 3. Vous pouvez récupérer votre brancard.", "#c89bff")
+	_bien("Victime transmise aux urgences avec un bilan complet")
+	brancard.visible = false
+	e.fermer_portes()
+	for c in _equipage(e):
+		c.visible = false
+	ajouter_interaction("remonter", e.global_position + Vector3(0, 1.5, 0), 5.0, "Remonter dans le VSAV (retour au centre)", _remonter_hopital)
+
+
+func _remonter_hopital() -> void:
+	retirer_interaction("remonter")
+	var e = mission["engin"]
+	joueur.activer(false)
+	e.vue(1)
 	_rentrer_au_centre(e, "H")
+
+
+## Infirmière d'accueil et brancard, préparés une fois pour toutes devant les urgences.
+func _creer_urgences() -> void:
+	infirmiere = Temoin.new()
+	add_child(infirmiere)
+	infirmiere.construire("Infirmière d'accueil (IAO)", "F", 38, 37, true)
+	infirmiere.global_position = Vector3(184.0, 0.05, 248.6)
+	infirmiere.rotation.y = 0.0
+	infirmiere.regarder(joueur)
+	brancard = Node3D.new()
+	add_child(brancard)
+	var inox := Color(0.75, 0.77, 0.8)
+	Geo.boite(brancard, Vector3(0.6, 0.12, 2.0), Vector3(0, 0.72, 0), Color(0.15, 0.2, 0.35), false)
+	Geo.boite(brancard, Vector3(0.62, 0.05, 2.04), Vector3(0, 0.63, 0), inox, false)
+	for x in [-0.25, 0.25]:
+		for z in [-0.85, 0.85]:
+			Geo.boite(brancard, Vector3(0.04, 0.6, 0.04), Vector3(x, 0.32, z), inox, false)
+			Geo.cylindre(brancard, 0.06, 0.04, Vector3(x, 0.06, z), Color(0.1, 0.1, 0.1))
+	brancard.visible = false
 
 
 func _rentrer_au_centre(e, depuis: String) -> void:
@@ -940,7 +1159,8 @@ func _rentrer_au_centre(e, depuis: String) -> void:
 
 func _rentre() -> void:
 	var e = mission["engin"]
-	_set_statut("disponible", e.code)
+	etat = "reconditionnement"
+	_chrono.append([heure, "rentre"])
 	joueur.teleporter(e.global_position + Vector3(e.largeur * 0.5 + 1.5, 0.2, 0), PI)
 	joueur.activer(true)
 	joueur.ari = false
@@ -948,6 +1168,22 @@ func _rentre() -> void:
 		equipages["FPT"][2].set_ari(false)
 	joueur.lance = false
 	joueur.porte_victime = false
+	var quoi := "oxygène, draps du brancard, sac de secours" if e == vsav else "bouteilles d'ARI, tuyaux, plein d'eau"
+	_chef_dit("On n'est pas disponibles tant que l'engin n'est pas prêt. Reconditionne le %s : %s." % [e.code, quoi])
+	ajouter_interaction("recond", e.global_position + Vector3(0, 1.2, 0), 4.0, "Reconditionner le %s (%s)" % [e.code, quoi], _reconditionner)
+
+
+func _reconditionner() -> void:
+	retirer_interaction("recond")
+	var e = mission["engin"]
+	mission["recond"] = true
+	_fondu()
+	if e == vsav:
+		hud.radio("Vous", "Bouteille d'oxygène changée, draps du brancard remis, sac de secours complété et désinfecté.", "#dddddd")
+	else:
+		hud.radio("Vous", "Bouteilles d'ARI rechargées, tuyaux mouillés remplacés, citerne refaite.", "#dddddd")
+	_bien("Engin reconditionné avant de repasser disponible")
+	_set_statut("disponible", e.code)
 	_fin_intervention()
 
 
@@ -985,6 +1221,7 @@ func _capeler() -> void:
 		hud.radio("Vous", "ARI déjà capelé.", "#dddddd")
 		return
 	joueur.ari = true
+	mission["ari"] = true
 	equipages["FPT"][2].set_ari(true)   # l'équipier du binôme capelle aussi
 	fpt.ouvrir_porte("coffre_droit_0")   # les ARI sont rangés dans le coffre avant droit
 	joueur.air = 300.0
@@ -994,6 +1231,7 @@ func _capeler() -> void:
 
 func _prendre_lance() -> void:
 	joueur.lance = true
+	mission["lance"] = true
 	fpt.ouvrir_porte("coffre_droit_1")   # tuyaux et lances : coffre du milieu
 	hud.radio("Vous", "Lance prise, l'établissement suit jusqu'au 2e étage. Clic gauche pour arroser.", "#dddddd")
 
@@ -1005,6 +1243,7 @@ func _monter_escalier() -> void:
 	if not joueur.ari:
 		_faute(6, "Engagement en zone enfumée sans ARI", "Tu t'engages sans ARI dans un immeuble enfumé ! C'est une faute grave.")
 	_fondu()
+	mission["monte"] = true
 	joueur.teleporter(Carte.PALIER_2E, 0.0)
 	var nguyen = equipages["FPT"][2]
 	nguyen.teleporter(Carte.PALIER_2E + Vector3(1.0, -0.2, 1.0))
@@ -1275,6 +1514,7 @@ func _fin_intervention() -> void:
 		t += "[color=#7dff7d]✓[/color] %s\n" % b
 	for l in lignes:
 		t += l + "\n"
+	t += "\n[b]Chronologie[/b] : " + _texte_chrono() + "\n"
 	t += "\n[b]Avis du chef d'agrès[/b] (%s) : %s\n" % [chef.nom_complet(), avis]
 	var xp_total := int(carriere["xp"])
 	if xp_total >= 500:
@@ -1285,6 +1525,111 @@ func _fin_intervention() -> void:
 	hud.afficher_fin(t)
 
 
+## Heures des statuts, comme sur la main courante du CTA-CODIS.
+func _texte_chrono() -> String:
+	var noms := {"appel": "appel", "parti": "parti", "sur_les_lieux": "sur les lieux", "transport_hopital": "transport",
+		"arrive_hopital": "arrivé CH", "retour": "retour", "rentre": "rentré", "disponible": "disponible"}
+	var morceaux: Array = []
+	for c in _chrono:
+		var h := int(float(c[0]) / 3600.0) % 24
+		var m := int(float(c[0]) / 60.0) % 60
+		morceaux.append("%s %02dh%02d" % [noms.get(c[1], c[1]), h, m])
+	return " · ".join(PackedStringArray(morceaux))
+
+
+# ---------------------------------------------------------------------------
+# Déroulé de l'intervention et balise d'objectif (mode guidé)
+# ---------------------------------------------------------------------------
+
+func _passe(e: String) -> bool:
+	return int(RANGS.get(etat, -1)) > int(RANGS.get(e, -1))
+
+
+## Les étapes de l'intervention en cours : [texte, faite, où aller (ou null)].
+func _etapes() -> Array:
+	var e = mission["engin"]
+	var r: Array = []
+	var en_caserne := Vector3(e.global_position.x, 1.5, e.global_position.z)
+	if mission["id"] == "feu_appartement":
+		r.append(["S'habiller au vestiaire (tenue de feu)", joueur.tenue == "feu" or _passe("depart"), Carte.VESTIAIRE + Vector3(0, 1, -5)])
+		r.append(["Monter dans le FPT", _passe("depart"), en_caserne])
+		r.append(["Trajet vers les lieux (T : accélérer)", _passe("trajet"), null])
+		r.append(["Capeler l'ARI (arrière du FPT)", mission["ari"], fpt.global_position - fpt.avant() * (fpt.longueur * 0.5 + 0.8) + Vector3(0, 1, 0)])
+		r.append(["Prendre la lance (côté droit du FPT)", mission["lance"], fpt.global_position + fpt.droite() * 1.8 + Vector3(0, 1, 0)])
+		r.append(["Monter au 2e étage (entrée de l'immeuble)", mission["monte"], Carte.PORTE_IMMEUBLE + Vector3(-0.5, 1, 0)])
+		if victime != null:
+			var ou = null
+			if joueur.porte_victime:
+				ou = Carte.PALIER_2E + Vector3(0, 0.7, 0)
+			elif _dans_batiment:
+				ou = victime.global_position + Vector3(0, 0.5, 0)
+			r.append(["Rechercher la victime et la descendre", mission["victime_sauvee"], ou])
+		r.append(["Éteindre le feu (clic gauche, lance en main)", _drapeaux.has("eteint"), null])
+		r.append(["Redescendre et remonter dans le FPT", _passe("sur_place"), (Carte.PALIER_2E + Vector3(0, 0.7, 0)) if _dans_batiment else fpt.global_position + Vector3(0, 1.5, 0)])
+		r.append(["Retour au centre", _passe("retour"), null])
+		r.append(["Reconditionner le FPT", mission["recond"], en_caserne])
+		return r
+	var v_pos = null
+	if victime != null and victime.visible:
+		v_pos = victime.global_position + Vector3(0, 0.6, 0)
+	r.append(["S'habiller au vestiaire (tenue d'intervention)", joueur.tenue != "" or _passe("depart"), Carte.VESTIAIRE + Vector3(0, 1, -5)])
+	r.append(["Monter dans le VSAV", _passe("depart"), en_caserne])
+	r.append(["Trajet vers les lieux (T : accélérer, C : vue)", _passe("trajet"), null])
+	r.append(["Prendre le sac de secours (porte latérale du VSAV)", mission["sac"], _pos_sac() if not e.en_route else null])
+	if TEMOINS.has(mission.get("variante", "")):
+		r.append(["Écouter le témoin", mission["temoin"], (temoin.global_position + Vector3(0, 1.2, 0)) if temoin != null and is_instance_valid(temoin) else null])
+	var vic_ok: bool = victime != null
+	r.append(["Faire le bilan (touche 1)", vic_ok and victime.bilan_fait, v_pos])
+	var gestes_ok := false
+	if vic_ok:
+		gestes_ok = victime.bilan_fait and victime.gestes_manquants().filter(func(g): return g != "transmettre").is_empty()
+	r.append(["Gestes adaptés à la victime (2 à 5)", gestes_ok, v_pos])
+	r.append(["Transmettre le bilan au médecin (6)", vic_ok and victime.bilan_transmis, v_pos])
+	r.append(["Brancarder et charger (7)", vic_ok and victime.prise_en_charge, v_pos])
+	r.append(["Monter dans la cellule avec la victime", _passe("sur_place"), _pos_arriere(e) if etat == "sur_place" else null])
+	r.append(["Transport au centre hospitalier", _passe("transport"), null])
+	r.append(["Transmettre la victime à l'infirmière d'accueil", mission["iao"], infirmiere.global_position + Vector3(0, 1.2, 0)])
+	r.append(["Remonter dans le VSAV", _passe("hopital"), e.global_position + Vector3(0, 1.5, 0)])
+	r.append(["Retour au centre", _passe("retour"), null])
+	r.append(["Reconditionner le VSAV", mission["recond"], en_caserne])
+	return r
+
+
+func _maj_deroule() -> void:
+	if mission.is_empty() or etat == "fin" or etat == "caserne" or not guide_visible:
+		hud.set_deroule("")
+		guide.cacher()
+		return
+	var etapes := _etapes()
+	var dernier := -1
+	for i in etapes.size():
+		if etapes[i][1]:
+			dernier = i
+	var courant := -1
+	for i in range(dernier + 1, etapes.size()):
+		if not etapes[i][1]:
+			courant = i
+			break
+	var t := "[b]Déroulé — %s[/b]\n" % str(mission["st"]["nom"])
+	for i in etapes.size():
+		var ligne: String = etapes[i][0]
+		if etapes[i][1]:
+			t += "[color=#7dff7d]✓ %s[/color]\n" % ligne
+		elif i < dernier:
+			t += "[color=#ff9f6b]✗ %s (oublié)[/color]\n" % ligne
+		elif i == courant:
+			t += "[color=#ffd84a][b]▶ %s[/b][/color]\n" % ligne
+		else:
+			t += "[color=#9a9a9a]○ %s[/color]\n" % ligne
+	t += "[color=#888888]F1 : masquer[/color]"
+	hud.set_deroule(t)
+	# Balise : au-dessus de l'objectif courant, si le joueur est à pied.
+	if courant >= 0 and etapes[courant][2] != null and joueur.controle and _assis == null:
+		guide.cibler(etapes[courant][2], str(etapes[courant][0]).get_slice(" (", 0))
+	else:
+		guide.cacher()
+
+
 func _reprendre_garde() -> void:
 	hud.cacher_fin()
 	etat = "caserne"
@@ -1293,8 +1638,11 @@ func _reprendre_garde() -> void:
 		victime.queue_free()
 		victime = null
 	feu.reinitialiser()
-	for id in ["victime", "transport", "ari", "lance", "porte", "palier", "rentrer", "monter"]:
+	for id in ["victime", "transport", "ari", "lance", "porte", "palier", "rentrer", "monter", "sac", "iao", "remonter", "recond"]:
 		retirer_interaction(id)
+	_supprimer_temoin()
+	brancard.visible = false
+	guide.cacher()
 	joueur.tenue = ""
 	joueur.sante = 100.0
 	for code in equipages.keys():

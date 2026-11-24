@@ -18,6 +18,8 @@ var vitesse := 2.6
 
 var _cible := Vector3.ZERO
 var _en_mouvement := false
+var _chemin: PackedVector3Array = PackedVector3Array()   # points de passage (contournent les murs)
+var _t_chemin := 0.0
 var _suivi: Node3D = null
 var _etiquette: Label3D
 var corps: Node3D
@@ -57,6 +59,32 @@ func aller(pos: Vector3) -> void:
 	_suivi = null
 	_cible = pos
 	_en_mouvement = true
+	_calculer_chemin(pos)
+
+
+## Chemin à pied qui passe par les portes, calculé sur le maillage de navigation.
+## Hors des zones navigables (ou si le maillage n'est pas prêt), on va tout droit.
+func _calculer_chemin(but: Vector3) -> void:
+	_chemin = PackedVector3Array()
+	if not is_inside_tree():
+		return
+	var carte: RID = get_world_3d().navigation_map
+	if NavigationServer3D.map_get_iteration_id(carte) == 0:
+		return
+	var depart: Vector3 = global_position
+	var proche_d: Vector3 = NavigationServer3D.map_get_closest_point(carte, depart)
+	var proche_b: Vector3 = NavigationServer3D.map_get_closest_point(carte, but)
+	if proche_d.distance_to(depart) > 2.5 or proche_b.distance_to(but) > 4.0:
+		return
+	var c: PackedVector3Array = NavigationServer3D.map_get_path(carte, depart, but, true)
+	if c.size() >= 2:
+		_chemin = c
+		_chemin.remove_at(0)
+		# Dernier pas jusqu'au but seulement s'il est tout près (sinon il y a un mur entre les deux).
+		if _chemin[_chemin.size() - 1].distance_to(but) < 1.2:
+			_chemin.append(but)
+	else:
+		_chemin = PackedVector3Array([but])
 
 
 func suivre(cible: Node3D) -> void:
@@ -71,6 +99,7 @@ func arreter() -> void:
 func teleporter(pos: Vector3) -> void:
 	global_position = pos
 	_en_mouvement = false
+	_chemin = PackedVector3Array()
 
 
 func _process(delta: float) -> void:
@@ -81,16 +110,31 @@ func _process(delta: float) -> void:
 	if _suivi != null and is_instance_valid(_suivi):
 		var derriere: Vector3 = _suivi.global_position + _suivi.global_transform.basis.z * 1.6
 		if global_position.distance_to(derriere) > 1.2:
+			# On recalcule le chemin vers le joueur de temps en temps.
+			_t_chemin -= delta
+			if _t_chemin <= 0.0:
+				_t_chemin = 0.6
+				_calculer_chemin(derriere)
 			but = derriere
 			actif = true
 		else:
 			actif = false
+			_chemin = PackedVector3Array()
+	if actif and _chemin.size() > 0:
+		but = _chemin[0]
+		var reste: Vector3 = but - global_position
+		reste.y = 0.0
+		if reste.length() < 0.35 and _chemin.size() > 1:
+			_chemin.remove_at(0)
+			but = _chemin[0]
 	if actif:
 		var vers: Vector3 = but - global_position
 		vers.y = 0.0
 		var d: float = vers.length()
 		if d < 0.2:
-			_en_mouvement = false
+			if _chemin.size() <= 1:
+				_en_mouvement = false
+				_chemin = PackedVector3Array()
 		else:
 			var pas: float = minf(d, vitesse * delta * (1.0 - fatigue * 0.004))
 			global_position += vers.normalized() * pas
