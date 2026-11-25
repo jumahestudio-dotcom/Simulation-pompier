@@ -1,3 +1,4 @@
 .godot/
 export/
 modeles/*.glb
+modeles/mixamo/*.fbx

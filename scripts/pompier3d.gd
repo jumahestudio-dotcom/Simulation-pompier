@@ -45,9 +45,73 @@ static func disponible() -> bool:
 	return M.present(FICHIER)
 
 
-func construire(p_tenue: Dictionary) -> void:
+## Personnages Mixamo envoyés par Sellier pour les tenues hors intervention
+## (fichiers .fbx d'origine, copiés dans modeles/mixamo/ sans les renommer).
+## Chaque pièce de vêtement est un maillage à part : on la teint aux couleurs SDIS37.
+const DOSSIER_CIVILS := "res://modeles/mixamo/"
+const CIVILS := {
+	"station": {"M": "Ch01_nonPBR.fbx", "F": "Ch22_nonPBR.fbx"},
+	"sport": {"M": "Ch38_nonPBR.fbx", "F": "Ch37_nonPBR.fbx"},
+}
+## Teintes par pièce (fin du nom du maillage) : [couleur, intensité].
+const TEINTES_CIVILES := {
+	"station": {"Shirt": [Color(0.12, 0.16, 0.3), 1.0], "Pants": [Color(0.09, 0.11, 0.2), 1.6], "Sneakers": [Color(0.05, 0.05, 0.06), 1.0]},
+	"sport": {"Shirt": [Color(0.7, 0.07, 0.07), 1.0], "Shorts": [Color(0.1, 0.13, 0.26), 1.0], "Socks": [Color(0.1, 0.13, 0.26), 1.0], "Pants": [Color(0.1, 0.12, 0.22), 2.0]},
+}
+
+var civil := false
+var fichier := FICHIER
+var _baisse := BAISSE_BRAS
+const ANGLE_BRAS := 1.32   # bras le long du corps : angle sous l'horizontale (rad)
+
+
+## Le fichier Mixamo à utiliser pour ce moment et ce sexe, ou "" s'il n'y en a pas.
+static func fichier_civil(contexte_voulu: String, sexe: String) -> String:
+	if not CIVILS.has(contexte_voulu):
+		return ""
+	var f: String = CIVILS[contexte_voulu].get(sexe, "")
+	return f if f != "" and FileAccess.file_exists(DOSSIER_CIVILS + f) else ""
+
+
+static var _fbx := {}
+
+
+## Charge un .fbx au moment de l'exécution (le dossier n'est pas importé par l'éditeur).
+static func _instance_fbx(nom: String) -> Node3D:
+	if not _fbx.has(nom):
+		var r: Node3D = null
+		var doc := FBXDocument.new()
+		var etat := FBXState.new()
+		if doc.append_from_file(ProjectSettings.globalize_path(DOSSIER_CIVILS + nom), etat) == OK:
+			r = doc.generate_scene(etat)
+			# Les maillages arrivent « à importer » : on les transforme en maillages affichables.
+			for im in r.find_children("*", "ImporterMeshInstance3D", true, false):
+				var mi := MeshInstance3D.new()
+				var par: Node = im.get_parent()
+				var nom_mi := String(im.name)
+				mi.mesh = (im as ImporterMeshInstance3D).mesh.get_mesh()
+				mi.skin = (im as ImporterMeshInstance3D).skin
+				mi.transform = (im as ImporterMeshInstance3D).transform
+				par.remove_child(im)
+				im.free()
+				mi.name = nom_mi
+				par.add_child(mi)
+				mi.skeleton = NodePath("..") if par is Skeleton3D else NodePath("")
+			for n in r.find_children("*", "", true, false):
+				n.owner = r
+		_fbx[nom] = r
+	var o: Node3D = _fbx[nom]
+	return null if o == null else o.duplicate()
+
+
+func construire(p_tenue: Dictionary, p_fichier: String = "") -> void:
 	tenue = p_tenue
-	_modele = M.instance(FICHIER)
+	if p_fichier != "":
+		civil = true
+		fichier = p_fichier
+		_modele = _instance_fbx(p_fichier)
+	else:
+		_modele = M.instance(FICHIER)
 	if _modele == null:
 		return
 	add_child(_modele)
@@ -67,12 +131,16 @@ func construire(p_tenue: Dictionary) -> void:
 	for mi in _sk.find_children("*", "MeshInstance3D", true, false):
 		(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	_preparer_os()
-	_poser_casque_f1()
-	_preparer_tete()
+	if civil:
+		_regler_civil()
+	if not civil:
+		_poser_casque_f1()
+		_preparer_tete()
 	var taille: float = float(tenue.get("taille", 1.0)) * float(tenue.get("corpulence", 1.0)) * 0.5 + 0.5
 	scale = Vector3.ONE * clampf(taille, 0.96, 1.05)
 	equiper(false, false)
-	habiller(String(tenue.get("contexte", "intervention")))
+	if not civil:
+		habiller(String(tenue.get("contexte", "intervention")))
 	animer(0.0, 0.0)
 
 
@@ -125,11 +193,22 @@ const OS_UTILES := {
 }
 
 
+## « mixamorig_LeftArm_12 » ou « mixamorig12_LeftArm » -> « LeftArm ».
+static func _os_de(n: String) -> String:
+	if not n.begins_with("mixamorig"):
+		return ""
+	var reste := n.substr(n.find("_") + 1)
+	var bouts := reste.split("_")
+	if bouts.size() > 1 and bouts[-1].is_valid_int():
+		bouts.remove_at(bouts.size() - 1)
+	return "_".join(bouts)
+
+
 func _preparer_os() -> void:
 	for i in _sk.get_bone_count():
 		var n := _sk.get_bone_name(i)
 		for cle in OS_UTILES:
-			if n.begins_with("mixamorig_" + OS_UTILES[cle] + "_"):
+			if _os_de(n) == OS_UTILES[cle]:
 				_os[cle] = i
 	# Pose de référence (bras en croix, face à +z) : l'inverse des « bind poses » du skin.
 	var skin: Skin = null
@@ -304,6 +383,9 @@ var _gilet: Node3D = null
 ## Change de tenue : "station" (tenue de caserne), "sport", "ceremonie", "intervention" (F1),
 ## "secours_routier" (F1 + gilet haute visibilité), "incendie" (tenue de feu, casque).
 func habiller(c: String) -> void:
+	if civil:
+		_teindre_civil(c)
+		return
 	if not TENUES.has(c) or _sk == null:
 		return
 	contexte = c
@@ -329,6 +411,46 @@ func _teindre(cle: String, couleur) -> void:
 				m.set_surface_override_material(s, null)
 			else:
 				m.set_surface_override_material(s, _mat_teint(m.mesh.surface_get_material(s), couleur))
+
+
+## Personnage Mixamo : bras en T dans le fichier, on calcule de combien les baisser ;
+## peau et vêtements opaques (seuls cheveux et cils gardent leur transparence).
+func _regler_civil() -> void:
+	if _os.has("bras_g") and _os.has("avbras_g"):
+		var a: Vector3 = (_bind[_os["bras_g"]] as Transform3D).origin
+		var b: Vector3 = (_bind[_os["avbras_g"]] as Transform3D).origin
+		var d := b - a
+		var sous := atan2(-d.y, Vector2(d.x, d.z).length())
+		_baisse = ANGLE_BRAS - sous
+	for mi in _modele.find_children("*", "MeshInstance3D", true, false):
+		var m := mi as MeshInstance3D
+		var piece := String(m.name).get_slice("_", 1)
+		if piece in ["Hair", "Eyelashes", "Eyeleashes"]:
+			continue
+		for s in m.mesh.get_surface_count():
+			var mat := m.mesh.surface_get_material(s)
+			if mat is StandardMaterial3D and (mat as StandardMaterial3D).transparency != BaseMaterial3D.TRANSPARENCY_DISABLED:
+				var n := (mat as StandardMaterial3D).duplicate() as StandardMaterial3D
+				n.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+				m.mesh.surface_set_material(s, n)
+
+
+func _teindre_civil(c: String) -> void:
+	contexte = c
+	var t: Dictionary = TEINTES_CIVILES.get(c, {})
+	for mi in _modele.find_children("*", "MeshInstance3D", true, false):
+		var m := mi as MeshInstance3D
+		var piece := String(m.name).get_slice("_", 1)
+		for s in m.mesh.get_surface_count():
+			if t.has(piece):
+				var mat := _mat_teint(m.mesh.surface_get_material(s), t[piece][0])
+				if mat is StandardMaterial3D:
+					mat = (mat as StandardMaterial3D).duplicate()
+					(mat as StandardMaterial3D).albedo_color = (t[piece][0] as Color) * float(t[piece][1])
+					(mat as StandardMaterial3D).albedo_color.a = 1.0
+				m.set_surface_override_material(s, mat)
+			else:
+				m.set_surface_override_material(s, null)
 
 
 static var _teints := {}
@@ -471,7 +593,7 @@ func animer(vitesse: float, delta: float) -> void:
 		_tourner("genou" + sfx, _rot(X, genou))
 		_tourner("pied" + sfx, _rot(X, -(cuisse + genou) * 0.75))
 		# Bras : du bras en croix au bras le long du corps, puis balancement en opposition
-		var bas := _rot(Z, -cote * (BAISSE_BRAS + sin(_t * 1.7) * 0.01 * repos))
+		var bas := _rot(Z, -cote * (_baisse + sin(_t * 1.7) * 0.01 * repos))
 		_tourner("clavicule" + sfx, _rot(Z, -cote * 0.04))
 		_tourner("bras" + sfx, _rot(X, si * 0.35 * amp) * bas)
 		var flexion: float = 0.2 + (0.35 + maxf(0.0, -si) * 0.45) * amp + (0.8 if course else 0.0) * amp

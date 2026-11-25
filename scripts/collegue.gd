@@ -37,7 +37,9 @@ func construire(p_nom: String, p_grade: String, p_role: String, tenue_feu: bool)
 	rng.seed = hash(p_nom)
 	var tenue: Dictionary = Corps.tenue_pompier(rng, "feu" if tenue_feu else "f1")
 	# Le vrai pompier 3D (modèle de Sellier) s'il est dans modeles/, sinon le corps dessiné en code.
+	_tenue = tenue
 	corps = Pompier3D.new() if Pompier3D.disponible() else Corps.new()
+	_corps_feu = corps
 	add_child(corps)
 	corps.construire(tenue)
 	corps.equiper(tenue_feu, false)
@@ -55,8 +57,26 @@ func nom_complet() -> String:
 var tenue_actuelle := ""
 
 
+var _tenue: Dictionary = {}
+var _corps_feu: Node3D
+var _corps_civils := {}   # fichier Mixamo -> corps
+
+
 func set_tenue(c: String) -> void:
 	tenue_actuelle = c
+	# Hors intervention : personnage Mixamo habillé (polo, sport) s'il est dans modeles/mixamo/.
+	var f := Pompier3D.fichier_civil(c, String(_tenue.get("sexe", "M"))) if _corps_feu is Pompier3D else ""
+	var voulu: Node3D = _corps_feu
+	if f != "":
+		if not _corps_civils.has(f):
+			var cc = Pompier3D.new()
+			add_child(cc)
+			cc.construire(_tenue, f)
+			_corps_civils[f] = cc
+		voulu = _corps_civils[f]
+	for b in [_corps_feu] + _corps_civils.values():
+		b.visible = b == voulu
+	corps = voulu
 	if corps.has_method("habiller"):
 		corps.habiller(c)
 	_casque_on = c in ["incendie", "secours_routier"]

@@ -5,7 +5,7 @@ const P3 = preload("res://scripts/pompier3d.gd")
 const Corps = preload("res://scripts/corps.gd")
 const S = preload("res://scripts/sdis37.gd")
 
-const ORDRE := ["station", "sport", "ceremonie", "intervention", "secours_routier", "incendie", "incendie_ari"]
+const ORDRE := ["station", "station_F", "sport", "sport_F", "ceremonie", "intervention", "secours_routier", "incendie", "incendie_ari"]
 
 func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
@@ -36,14 +36,16 @@ func _ready() -> void:
 		var p = P3.new()
 		add_child(p)
 		var t := Corps.tenue_pompier(rng, "f1")
-		p.construire(t)
 		var c: String = ORDRE[i]
+		t["sexe"] = "F" if c.ends_with("_F") else "M"
+		c = c.trim_suffix("_F")
+		p.construire(t, P3.fichier_civil(c, t["sexe"]))
 		p.habiller(c.trim_suffix("_ari"))
 		p.equiper(c.begins_with("incendie") or c == "secours_routier", c == "incendie_ari")
 		p.position = Vector3(-(ORDRE.size() - 1) * 0.55 + i * 1.1, 0, 0)
 		gens.append(p)
 	# Les modèles de Sellier, au second rang, pour comparer les couleurs
-	var refs := ["station", "sport", "ceremonie", "", "secours_routier", "incendie"]
+	var refs := ["station", "", "sport", "", "ceremonie", "", "secours_routier", "incendie"]
 	for i in refs.size():
 		if refs[i] == "":
 			continue
@@ -55,7 +57,7 @@ func _ready() -> void:
 	cam.fov = 38
 	add_child(cam)
 	cam.make_current()
-	var vues := [["face", Vector3(0, 1.5, -9.5), Vector3(0, 0.9, 0)], ["dos", Vector3(0, 1.5, 7.0), Vector3(0, 0.9, 0)], ["3q", Vector3(-5.5, 1.6, -5.5), Vector3(0, 0.9, 0)], ["gilet", Vector3(1.6, 1.4, -2.2), Vector3(2.2, 1.1, 0)]]
+	var vues := [["face", Vector3(0, 1.5, -12.0), Vector3(0, 0.9, 0)], ["dos", Vector3(0, 1.5, 7.0), Vector3(0, 0.9, 0)], ["3q", Vector3(-7.0, 1.6, -7.0), Vector3(0, 0.9, 0)], ["civils", Vector3(-3.3, 1.5, -4.2), Vector3(-3.3, 1.0, 0)]]
 	for v in vues:
 		for p in gens:
 			p.animer(0.0, 0.0)
