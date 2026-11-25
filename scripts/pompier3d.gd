@@ -62,7 +62,8 @@ func construire(p_tenue: Dictionary) -> void:
 			n.get_parent().remove_child(n)
 			n.free()
 	_sk = _modele.find_children("*", "Skeleton3D", true, false)[0]
-	_pieces = {"casque": _maillages(P_CASQUE), "cagoule": _maillages(P_CAGOULE), "masque": _maillages(P_MASQUE), "ari": _maillages(P_ARI)}
+	_pieces = {"casque": _maillages(P_CASQUE), "cagoule": _maillages(P_CAGOULE), "masque": _maillages(P_MASQUE), "ari": _maillages(P_ARI),
+		"veste": _maillages(["Kurtka"]), "pantalon": _maillages(["Shtani"]), "gants": _maillages(["FireGloves"]), "ceinture": _maillages(["Poyas"]), "bottes": _maillages(["Ботинки"])}
 	for mi in _sk.find_children("*", "MeshInstance3D", true, false):
 		(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	_preparer_os()
@@ -71,6 +72,7 @@ func construire(p_tenue: Dictionary) -> void:
 	var taille: float = float(tenue.get("taille", 1.0)) * float(tenue.get("corpulence", 1.0)) * 0.5 + 0.5
 	scale = Vector3.ONE * clampf(taille, 0.96, 1.05)
 	equiper(false, false)
+	habiller(String(tenue.get("contexte", "intervention")))
 	animer(0.0, 0.0)
 
 
@@ -277,6 +279,133 @@ func _preparer_tete() -> void:
 		# Casque et masque dessinés en code : jamais visibles (on montre ceux du modèle).
 		if n is Node3D and n.get_child_count() > 0 and not (n is MeshInstance3D):
 			n.queue_free()
+
+
+# ---------------------------------------------------------------------------
+# Tenues selon le moment (d'après les modèles SDIS37 de Sellier)
+# ---------------------------------------------------------------------------
+
+## Couleurs des tenues, relevées sur les modèles SDIS37 (Femme_*_SDIS37_V2.glb).
+## veste / pantalon : teinte appliquée sur la texture du modèle (plis et coutures gardés) ;
+## null = texture d'origine (tenue d'intervention F1). gants : false = rangés.
+const TENUES := {
+	"station": {"bottes": Color(0.04, 0.04, 0.045), "veste": Color(0.11, 0.15, 0.27), "pantalon": Color(0.1, 0.13, 0.22), "gants": false, "gilet": false},
+	"sport": {"bottes": Color(0.04, 0.04, 0.045), "veste": Color(0.62, 0.07, 0.07), "pantalon": Color(0.1, 0.13, 0.22), "gants": false, "gilet": false},
+	"ceremonie": {"bottes": Color(0.02, 0.02, 0.025), "veste": Color(0.06, 0.08, 0.16), "pantalon": Color(0.06, 0.08, 0.16), "gants": Color(0.95, 0.95, 0.93), "gilet": false},
+	"intervention": {"bottes": null, "veste": null, "pantalon": null, "gants": true, "gilet": false},
+	"secours_routier": {"bottes": null, "veste": null, "pantalon": null, "gants": true, "gilet": true},
+	"incendie": {"bottes": null, "veste": null, "pantalon": null, "gants": true, "gilet": false},
+}
+
+var contexte := ""
+var _gilet: Node3D = null
+
+
+## Change de tenue : "station" (tenue de caserne), "sport", "ceremonie", "intervention" (F1),
+## "secours_routier" (F1 + gilet haute visibilité), "incendie" (tenue de feu, casque).
+func habiller(c: String) -> void:
+	if not TENUES.has(c) or _sk == null:
+		return
+	contexte = c
+	var t: Dictionary = TENUES[c]
+	_teindre("veste", t["veste"])
+	_teindre("pantalon", t["pantalon"])
+	_teindre("bottes", t["bottes"])
+	var g = t["gants"]
+	_montrer("gants", not (g is bool and g == false))
+	_teindre("gants", g if g is Color else null)
+	_montrer("ceinture", c in ["intervention", "incendie"])
+	if t["gilet"] and _gilet == null:
+		_poser_gilet()
+	if _gilet != null:
+		_gilet.visible = t["gilet"]
+
+
+func _teindre(cle: String, couleur) -> void:
+	for mi in _pieces.get(cle, []):
+		var m := mi as MeshInstance3D
+		for s in m.mesh.get_surface_count():
+			if couleur == null:
+				m.set_surface_override_material(s, null)
+			else:
+				m.set_surface_override_material(s, _mat_teint(m.mesh.surface_get_material(s), couleur))
+
+
+static var _teints := {}
+
+
+## Matériau d'origine passé en niveaux de gris puis teinté : on garde les plis, les coutures
+## et les bandes (plus claires), dans la couleur de la tenue.
+static func _mat_teint(origine: Material, couleur: Color) -> Material:
+	var cle := [origine, couleur]
+	if _teints.has(cle):
+		return _teints[cle]
+	var r: Material = origine
+	if origine is StandardMaterial3D:
+		var n := (origine as StandardMaterial3D).duplicate() as StandardMaterial3D
+		if couleur.get_luminance() > 0.7:
+			# Teinte claire (gants blancs de cérémonie) : couleur unie
+			n.albedo_texture = null
+			n.albedo_color = couleur
+		else:
+			n.albedo_texture = _gris(n.albedo_texture)
+			n.albedo_color = couleur * 2.2
+			n.albedo_color.a = 1.0
+		n.metallic = 0.0
+		n.roughness = 0.85
+		r = n
+	_teints[cle] = r
+	return r
+
+
+## Gilet haute visibilité, d'après Gilet_Haute_Visibilite_SDIS37.glb : jaune fluo et deux
+## bandes réfléchissantes, mais sculpté autour du buste (le modèle d'origine est un bloc
+## qui ne suit pas la veste). Accroché à l'os du buste, il suit la respiration et la marche.
+func _poser_gilet() -> void:
+	if not _os.has("dos1"):
+		return
+	var att := BoneAttachment3D.new()
+	att.bone_idx = _os["dos1"]
+	_sk.add_child(att)
+	var pivot := Node3D.new()
+	att.add_child(pivot)
+	var bg: Basis = (_bind[_os["dos1"]] as Transform3D).basis.orthonormalized()
+	pivot.basis = bg.inverse() * Basis(Vector3.UP, PI)
+	pivot.scale = Vector3.ONE / maxf(_echelle, 0.0001)
+	var fluo := StandardMaterial3D.new()
+	fluo.albedo_color = Color(0.86, 0.95, 0.12)
+	fluo.emission_enabled = true
+	fluo.emission = Color(0.25, 0.3, 0.0)
+	fluo.roughness = 0.75
+	var bande := StandardMaterial3D.new()
+	bande.albedo_color = Color(0.82, 0.84, 0.86)
+	bande.metallic = 0.6
+	bande.roughness = 0.3
+	var y0 := GILET_POS.y
+	var lx := GILET_ECHELLE.x
+	var lz := GILET_ECHELLE.z
+	var dz := GILET_POS.z
+	var ly := GILET_ECHELLE.y
+	# Sections du gilet, de la taille aux épaules : [hauteur, demi-largeur, demi-profondeur, décalage avant]
+	var corps_gilet := [[y0, 0.2 * lx, 0.15 * lz, dz], [y0 + 0.12 * ly, 0.205 * lx, 0.155 * lz, dz], [y0 + 0.3 * ly, 0.215 * lx, 0.16 * lz, dz],
+		[y0 + 0.42 * ly, 0.2 * lx, 0.15 * lz, dz], [y0 + 0.47 * ly, 0.12 * lx, 0.11 * lz, dz], [y0 + 0.49 * ly, 0.07 * lx, 0.07 * lz, dz]]
+	var mi := MeshInstance3D.new()
+	mi.mesh = Corps.loft(corps_gilet, 16)
+	mi.material_override = fluo
+	pivot.add_child(mi)
+	for yb in [0.07, 0.25]:
+		var r := 1.04
+		var anneaux := [[y0 + yb * ly, 0.203 * lx * r, 0.153 * lz * r, dz], [y0 + (yb + 0.05) * ly, 0.207 * lx * r, 0.156 * lz * r, dz]]
+		var b := MeshInstance3D.new()
+		b.mesh = Corps.loft(anneaux, 16)
+		b.material_override = bande
+		pivot.add_child(b)
+	_gilet = att
+
+
+## Réglage du gilet sur le buste (repère de l'os du buste, en mètres).
+static var GILET_POS := Vector3(0, -0.28, 0.0)
+static var GILET_ECHELLE := Vector3(1.17, 1.12, 1.3)
 
 
 # ---------------------------------------------------------------------------

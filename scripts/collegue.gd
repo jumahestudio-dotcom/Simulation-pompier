@@ -41,11 +41,28 @@ func construire(p_nom: String, p_grade: String, p_role: String, tenue_feu: bool)
 	add_child(corps)
 	corps.construire(tenue)
 	corps.equiper(tenue_feu, false)
+	set_tenue("incendie" if tenue_feu else "station")
 	_etiquette = Geo.texte(self, "%s %s\n%s" % [grade, nom, role], Vector3(0, 2.3, 0), 28, Color(1, 1, 0.8))
 
 
 func nom_complet() -> String:
 	return "%s %s" % [grade, nom]
+
+
+## Tenue selon le moment (modèles SDIS37 de Sellier) : "station" à la caserne, "sport",
+## "ceremonie", "intervention" (F1 au VSAV), "secours_routier" (gilet haute visibilité),
+## "incendie" (tenue de feu). Le corps dessiné en code (repli) garde sa tenue.
+var tenue_actuelle := ""
+
+
+func set_tenue(c: String) -> void:
+	tenue_actuelle = c
+	if corps.has_method("habiller"):
+		corps.habiller(c)
+	_casque_on = c in ["incendie", "secours_routier"]
+	if c != "incendie":
+		_ari_on = false
+	corps.equiper(_casque_on, _ari_on)
 
 
 func set_casque(v: bool) -> void:

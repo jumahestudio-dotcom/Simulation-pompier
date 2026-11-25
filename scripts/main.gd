@@ -385,6 +385,10 @@ func _creer_collegues() -> void:
 	chef_garde = _nouveau_collegue("Girard", "Adjudant", "chef de garde", Vector3(-240, 0, -63.5), false)
 	equipages["VSAV"] = [lambert, diallo]
 	equipages["FPT"] = [moreau, petit, nguyen, roux, benali]
+	# Hors équipage : une sapeur en tenue de sport dans la salle de sport de la remise
+	var sportive = _nouveau_collegue("Roussel", "Sapeur 1re classe", "à l'entraînement", Vector3(-281.0, 0, -49.0), false)
+	sportive.set_tenue("sport")
+	sportive.rotation.y = PI * 0.5
 
 
 func _interactions_fixes() -> void:
@@ -829,6 +833,8 @@ func _partir_vers_lieux() -> void:
 		var eng = engages[i]
 		for c in _equipage(eng):
 			c.visible = false
+			# Tenue de feu au FPT, tenue F1 d'intervention au VSAV
+			c.set_tenue("incendie" if eng == fpt else "intervention")
 		var pts: Array = [Vector3(eng.global_position.x, 0, -12)]
 		var recul := 0.0 if i == 0 else 16.0
 		var garage := 6.5 if noeud == "d_chute" else 4.0
@@ -870,7 +876,7 @@ func _engin_arrive(e, but: String) -> void:
 				c.visible = true
 				c.arreter()
 				c.teleporter(c.get_meta("pos_caserne"))
-				c.set_casque(e == fpt)
+				c.set_tenue("incendie" if e == fpt else "station")
 			if e == mission.get("engin") and etat == "retour":
 				_rentre()
 
@@ -1652,6 +1658,8 @@ func _reprendre_garde() -> void:
 			c.teleporter(c.get_meta("pos_caserne"))
 	reserve.visible = true
 	reserve.teleporter(reserve.get_meta("pos_caserne"))
+	for c in equipages["VSAV"] + [reserve]:
+		c.set_tenue("station")
 	mission = {}
 	prochain_appel = randf_range(30.0, 60.0)
 	hud.radio("Adjudant Girard (chef de garde)", "Engins reconditionnés. Prochain départ quand ça sonnera.", "#ffd27f")
