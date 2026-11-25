@@ -27,6 +27,10 @@ func _ready() -> void:
 	var l = vs[0]
 	await _vue(l.global_position + Vector3(1.2, 1.65, -2.4), l.global_position + Vector3(0.6, 1.2, 0), "q1_equipage_vsav")
 	await _vue(Vector3(-222.5, 1.6, -57.2), Vector3(-226.6, 1.1, -60.6), "q2_standard")
+	# Sapeur en tenue de sport dans la salle de sport
+	for c in main.get_children():
+		if c.get("nom") == "Roussel":
+			await _vue(c.global_position + Vector3(2.6, 1.5, -1.2), c.global_position + Vector3(0, 1.0, 0), "q7_sport")
 	# 2. Équipe du FPT qui marche dans la remise
 	var fp: Array = main.equipages["FPT"]
 	for i in fp.size():

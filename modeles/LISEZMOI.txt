@@ -48,3 +48,16 @@ Reçus mais pas utilisés (pour l'instant) :
   firefighter.glb                        les collègues pompiers (squelette animé par le jeu : marche,
                                          casque et appareil respiratoire selon la tenue)
   firefighter_in_turnout_gear.glb        sapeur de garde debout au bureau du standard (modèle immobile)
+
+Sous-dossier sdis37/ : modèles SDIS37 faits pour Sellier, versionnés avec le jeu (rien à copier).
+  Les tenues de la pompière servent de référence aux tenues des collègues (pompier3d.gd, TENUES) ;
+  le gilet haute visibilité est redessiné autour du buste. Le VSAV Master, la caserne V2 et les
+  accessoires (masque, bouteille, casque, cagoule, gants, bottes) ne sont pas utilisés en jeu :
+  le Crafter, la caserne actuelle et l'équipement du pompier 3D sont plus détaillés.
+
+Sous-dossier mixamo/ : personnages Mixamo (non publiés). Copiez-y, sans les renommer :
+  Ch01_nonPBR.fbx   tenue de caserne, homme (polo marine)
+  Ch22_nonPBR.fbx   tenue de caserne, femme
+  Ch38_nonPBR.fbx   tenue de sport, homme
+  Ch37_nonPBR.fbx   tenue de sport, femme
+Le fichier .gdignore du dossier empêche l'éditeur de les importer : le jeu les lit lui-même.
